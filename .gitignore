@@ -9,6 +9,10 @@ apps/desktop/src-tauri/target/
 apps/desktop/generate_frontend.py
 apps/desktop/*.d.ts
 apps/desktop/*.config.js
+# postcss.config.js is source, not a compiled artifact: it is what tells Vite
+# to run Tailwind. Ignoring it built an unstyled site on Cloudflare Pages
+# (4.7 kB of CSS instead of 42.7 kB) because the CI clone never received it.
+!apps/desktop/postcss.config.js
 .env
 .env.*
 !.env.example
