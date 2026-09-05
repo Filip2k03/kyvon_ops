@@ -1,0 +1,13 @@
+[package]
+name = "kyvon-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared domain types, errors and events for KyvonOPS"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+uuid.workspace = true

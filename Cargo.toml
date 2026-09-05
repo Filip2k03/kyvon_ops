@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/kyvon-core",
+    "crates/kyvon-security",
+    "crates/kyvon-telemetry",
+    "crates/kyvon-storage",
+    "crates/kyvon-ssh",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.82"
+
+[workspace.dependencies]
+kyvon-core = { path = "crates/kyvon-core" }
+kyvon-security = { path = "crates/kyvon-security" }
+kyvon-telemetry = { path = "crates/kyvon-telemetry" }
+kyvon-storage = { path = "crates/kyvon-storage" }
+kyvon-ssh = { path = "crates/kyvon-ssh" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "net", "fs", "process"] }
+tracing = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+async-trait = "0.1"
+futures = "0.3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

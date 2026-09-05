@@ -1,0 +1,21 @@
+[package]
+name = "kyvon-ssh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "SSH transport, host key verification, SFTP and remote execution for KyvonOPS"
+
+[dependencies]
+kyvon-core.workspace = true
+kyvon-security.workspace = true
+kyvon-telemetry.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+russh = "0.63"
+russh-sftp = "2"
+base64 = "0.22"
+sha2 = "0.10"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

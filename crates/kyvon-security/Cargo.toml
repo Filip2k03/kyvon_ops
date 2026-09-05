@@ -1,0 +1,10 @@
+[package]
+name = "kyvon-security"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command risk classification, shell quoting and path safety for KyvonOPS"
+
+[dependencies]
+kyvon-core.workspace = true
+serde.workspace = true
