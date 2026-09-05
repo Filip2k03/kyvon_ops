@@ -1,5 +1,0 @@
-# React Router serves every route from one HTML document. Without this, a
-# direct hit or refresh on /servers asks Cloudflare Pages for a file that was
-# never built and gets a 404. Rewrite (200) rather than redirect (301) so the
-# URL the operator is looking at stays the URL they typed.
-/*    /index.html   200
