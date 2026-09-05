@@ -1,7 +1,7 @@
 # KyvonOPS 2.0: Codex Autonomous Engineering Directives
 
 > **Directive Reference**: `KYVON-CODEX-2026-PACIFIC`  
-> **Applicability**: OpenAI Codex, Claude Code, Cursor CLI, Gemini Flash/Pro
+> **Applicability**: Codex Astra, Claude Opus, Agy Gemini 3.8
 
 ---
 

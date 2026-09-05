@@ -344,7 +344,7 @@ export const DownloadPortal: React.FC = () => {
               <span>Agent Asymmetry Invariant</span>
             </div>
             <p className="text-xs text-secondary leading-relaxed">
-              External language models (Codex, Claude, Cursor) must never receive private keys or passwords. They operate through typed, schema-validated MCP tools governed by human-in-the-loop approval gates.
+              External language models (Codex Astra, Claude Opus, Agy Gemini 3.8) must never receive private keys or passwords. They operate through typed, schema-validated MCP tools governed by human-in-the-loop approval gates.
             </p>
           </div>
 

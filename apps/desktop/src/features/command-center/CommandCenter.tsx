@@ -115,7 +115,7 @@ export const CommandCenter: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-secondary mt-0.5">
-              <strong>Claude Code / Cursor CLI</strong> invoked <code className="text-purple-300 font-mono">kyvon_deploy(shop-api, v1.8.4)</code> via stdio token. Zero SSH keys exposed.
+              <strong>Claude Opus / Codex Astra</strong> invoked <code className="text-purple-300 font-mono">kyvon_deploy(shop-api, v1.8.4)</code> via stdio token. Zero SSH keys exposed.
             </p>
           </div>
         </div>

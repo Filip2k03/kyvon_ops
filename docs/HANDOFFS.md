@@ -1,7 +1,7 @@
 # KyvonOPS 2.0: Frontend & Systems Architecture Handoffs Specification
 
 > **Classification**: Pacific Standard Production Directive  
-> **Audience**: Autonomous AI Engineers (Codex, Claude Code, Cursor, Gemini) & Principal Full-Stack SREs  
+> **Audience**: Autonomous AI Engineers (Codex Astra, Claude Opus, Agy Gemini 3.8) & Principal Full-Stack SREs  
 > **Repository Target**: `kyvon_ops` (Tauri 2, Rust, React 19, TypeScript, Capacitor 8)
 
 ---
@@ -11,7 +11,7 @@
 KyvonOPS 2.0 is a sovereign, local-first DevOps control plane, deployment intelligence platform, and Model Context Protocol (MCP) security gateway. It establishes encrypted, multiplexed SSH channels directly from the operator's workstation to target Linux VPS nodes, entirely bypassing centralized SaaS telemetry proxies.
 
 ### Critical Invariants (Never Violate)
-1. **Agent Asymmetry**: The AI model is **never** an SSH client. External models (Codex, Claude, Cursor) never possess SSH private keys, passphrases, or root passwords. They interact exclusively with typed MCP tools governed by human approval gates.
+1. **Agent Asymmetry**: The AI model is **never** an SSH client. External models (Codex Astra, Claude Opus, Agy Gemini 3.8) never possess SSH private keys, passphrases, or root passwords. They interact exclusively with typed MCP tools governed by human approval gates.
 2. **Local-First Cryptographic Keyring**: Credentials remain strictly within the operating system keychain (`keyring` crate) or encrypted local SQLite WAL tables. No secret may ever appear in logs, terminal history, or MCP responses.
 3. **No Mock Data in Production**: Telemetry, DNS records, SSL certificates, and AI recommendations consume real-world REST and IPC endpoints (`/proc` virtual filesystem, Cloudflare API v4, Google Gemini v1beta, Stripe Hosted Checkout).
 4. **Zero-Fork Syscall Telemetry**: The remote agent (`agent/src/main.rs`) is statically linked via `x86_64-unknown-linux-musl` with zero dynamic runtime dependencies. Telemetry is parsed directly from `/proc` and `/sys` to prevent fork-bomb saturation.
