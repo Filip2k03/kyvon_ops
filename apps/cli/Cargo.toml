@@ -1,0 +1,19 @@
+[package]
+name = "kyvon-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "kyvon"
+path = "src/main.rs"
+
+[dependencies]
+kyvon-core = { workspace = true }
+kyvon-diagnostics = { workspace = true }
+kyvon-policy = { workspace = true }
+kyvon-security = { workspace = true }
+kyvon-storage = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }

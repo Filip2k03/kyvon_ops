@@ -1320,6 +1320,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kyvon-cli"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "kyvon-core",
+ "kyvon-diagnostics",
+ "kyvon-policy",
+ "kyvon-security",
+ "kyvon-storage",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "kyvon-core"
 version = "0.1.0"
 dependencies = [

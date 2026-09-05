@@ -10,6 +10,7 @@ members = [
     "crates/kyvon-diagnostics",
     "crates/kyvon-policy",
     "apps/mcp",
+    "apps/cli",
     # "apps/desktop/src-tauri",
 ]
 
