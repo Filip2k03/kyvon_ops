@@ -1,11 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, Settings, Network, Boxes, Zap } from 'lucide-react';
+import { 
+  Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
+  Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download
+} from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
 
 const navItems = [
   { path: '/command-center', icon: Activity, label: 'Command Center' },
   { path: '/servers', icon: Server, label: 'Servers' },
+  { path: '/cloudflare', icon: Globe, label: 'Cloudflare & Ingress' },
+  { path: '/gemini', icon: Sparkles, label: 'Gemini AI Co-pilot' },
+  { path: '/mobile', icon: Smartphone, label: 'Mobile (.apk / .ipa)' },
   { path: '/terminal', icon: Terminal, label: 'Terminal' },
   { path: '/docker', icon: Boxes, label: 'Docker & Compose' },
   { path: '/diagnostics', icon: Zap, label: 'Diagnostics' },
@@ -15,6 +21,7 @@ const navItems = [
   { path: '/storage', icon: HardDrive, label: 'Storage' },
   { path: '/security', icon: Shield, label: 'Security' },
   { path: '/logs', icon: FileText, label: 'Logs' },
+  { path: '/downloads', icon: Download, label: 'Downloads & Donate' },
 ];
 
 export const Sidebar = () => {

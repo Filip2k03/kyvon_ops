@@ -14,6 +14,10 @@ import { DockerOverview } from './features/docker/DockerOverview';
 import { VpsDiagnostics } from './features/diagnostics/VpsDiagnostics';
 import { FileManager } from './features/files/FileManager';
 import { NotesEditor } from './features/notes/NotesEditor';
+import { CloudflareManager } from './features/cloudflare/CloudflareManager';
+import { GeminiOperations } from './features/gemini/GeminiOperations';
+import { MobileBuilder } from './features/mobile/MobileBuilder';
+import { DownloadPortal } from './features/downloads/DownloadPortal';
 
 export default function App() {
   return (
@@ -23,6 +27,9 @@ export default function App() {
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/servers" element={<ServerList />} />
         <Route path="/servers/:id" element={<ServerDetail />} />
+        <Route path="/cloudflare" element={<CloudflareManager />} />
+        <Route path="/gemini" element={<GeminiOperations />} />
+        <Route path="/mobile" element={<MobileBuilder />} />
         <Route path="/terminal" element={<TerminalView />} />
         <Route path="/processes" element={<ProcessExplorer />} />
         <Route path="/services" element={<ServiceManager />} />
@@ -34,6 +41,7 @@ export default function App() {
         <Route path="/diagnostics" element={<VpsDiagnostics />} />
         <Route path="/files" element={<FileManager />} />
         <Route path="/notes" element={<NotesEditor />} />
+        <Route path="/downloads" element={<DownloadPortal />} />
       </Route>
     </Routes>
   );
