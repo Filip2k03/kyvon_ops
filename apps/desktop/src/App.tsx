@@ -24,12 +24,15 @@ import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManage
 import { MobileCompanionView } from './features/mobile/MobileCompanionView';
 import { PromotionsHub } from './features/promotions/PromotionsHub';
 import { DigitalTwinExplorer } from './features/twin/DigitalTwinExplorer';
+import { LandingPage } from './features/landing/LandingPage';
+import { hasBackend } from './lib/backend';
 
 export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Navigate to="/command-center" replace />} />
+        <Route path="/" element={hasBackend() ? <Navigate to="/command-center" replace /> : <LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/servers" element={<ServerList />} />
         <Route path="/servers/:id" element={<ServerDetail />} />

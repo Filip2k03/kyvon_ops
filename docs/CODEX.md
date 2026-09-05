@@ -1,4 +1,4 @@
-# KyvonOPS 2.0: Codex Autonomous Engineering Directives
+# KyvonOPS V3.0: Codex Autonomous Engineering Directives
 
 > **Directive Reference**: `KYVON-CODEX-2026-PACIFIC`  
 > **Applicability**: Codex Astra, Claude Opus, Agy Gemini 3.8

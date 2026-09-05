@@ -8,6 +8,7 @@ import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
 
 const navItems = [
+  { path: '/landing', icon: Sparkles, label: 'Landing & 3D Tour' },
   { path: '/command-center', icon: Activity, label: 'Command Center' },
   { path: '/companion', icon: Radio, label: 'Mobile Companion' },
   { path: '/servers', icon: Server, label: 'Servers' },

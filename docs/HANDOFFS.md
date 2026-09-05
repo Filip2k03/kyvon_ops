@@ -1,4 +1,4 @@
-# KyvonOPS 2.0: Frontend & Systems Architecture Handoffs Specification
+# KyvonOPS V3.0: Frontend & Systems Architecture Handoffs Specification
 
 > **Classification**: Pacific Standard Production Directive  
 > **Audience**: Autonomous AI Engineers (Codex Astra, Claude Opus, Agy Gemini 3.8) & Principal Full-Stack SREs  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Core Architectural Invariants
 
-KyvonOPS 2.0 is a sovereign, local-first DevOps control plane, deployment intelligence platform, and Model Context Protocol (MCP) security gateway. It establishes encrypted, multiplexed SSH channels directly from the operator's workstation to target Linux VPS nodes, entirely bypassing centralized SaaS telemetry proxies.
+KyvonOPS V3.0 is a sovereign, local-first DevOps control plane, deployment intelligence platform, and Model Context Protocol (MCP) security gateway. It establishes encrypted, multiplexed SSH channels directly from the operator's workstation to target Linux VPS nodes, entirely bypassing centralized SaaS telemetry proxies.
 
 ### Critical Invariants (Never Violate)
 1. **Agent Asymmetry**: The AI model is **never** an SSH client. External models (Codex Astra, Claude Opus, Agy Gemini 3.8) never possess SSH private keys, passphrases, or root passwords. They interact exclusively with typed MCP tools governed by human approval gates.
