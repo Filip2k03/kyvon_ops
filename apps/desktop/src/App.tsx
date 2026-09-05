@@ -21,6 +21,7 @@ import { DownloadPortal } from './features/downloads/DownloadPortal';
 import { VpsHealthMatrix } from './features/servers/VpsHealthMatrix';
 import { DevicePairingCenter } from './features/security/DevicePairingCenter';
 import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManager';
+import { MobileCompanionView } from './features/mobile/MobileCompanionView';
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/diagnostics" element={<VpsDiagnostics />} />
         <Route path="/files" element={<FileManager />} />
         <Route path="/notes" element={<NotesEditor />} />
+        <Route path="/companion" element={<MobileCompanionView />} />
         <Route path="/downloads" element={<DownloadPortal />} />
       </Route>
     </Routes>

@@ -2,13 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
   Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download,
-  Monitor, QrCode, Briefcase
+  Monitor, QrCode, Briefcase, Radio
 } from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
 
 const navItems = [
   { path: '/command-center', icon: Activity, label: 'Command Center' },
+  { path: '/companion', icon: Radio, label: 'Mobile Companion' },
   { path: '/servers', icon: Server, label: 'Servers' },
   { path: '/clients', icon: Briefcase, label: 'Client Workspaces' },
   { path: '/vps-matrix', icon: Monitor, label: 'VPS Health Matrix' },
