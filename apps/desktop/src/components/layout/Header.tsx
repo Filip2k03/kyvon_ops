@@ -40,9 +40,19 @@ export const Header: React.FC = () => {
         </button>
 
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          {/*
+            Falling back to a hostname when nothing is selected would put an
+            invented host in the chrome of every screen (§108). "No host
+            selected" is the honest fallback, and the indicator only reads
+            connected when a session actually is.
+          */}
           <span className="font-semibold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate max-w-[130px] sm:max-w-[200px]">
-            <Wifi className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="truncate">{activeServerId || 'production-01'}</span>
+            <Wifi
+              className={`w-3.5 h-3.5 shrink-0 ${
+                activeServerId && state === 'connected' ? 'text-emerald-400' : 'text-secondary'
+              }`}
+            />
+            <span className="truncate">{activeServerId ?? 'No host selected'}</span>
           </span>
           <StatusBadge status={state === 'connected' ? 'healthy' : state === 'error' ? 'critical' : 'warning'} />
           <span className="text-[11px] font-mono text-secondary hidden md:inline bg-elevated px-2 py-0.5 rounded border border-border/60">
