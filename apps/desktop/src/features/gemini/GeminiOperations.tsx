@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, Key, Layout, Activity, Send, CheckCircle, AlertCircle, 
-  Terminal, ShieldCheck, Cpu, Smartphone, Palette, Copy, RotateCcw
+  Sparkles, Key, Layout, Send, CheckCircle, AlertCircle, 
+  ShieldCheck, Smartphone, Palette, Copy, RotateCcw,
+  Sliders, Eye, Code2
 } from 'lucide-react';
 import { GeminiClient } from '../../lib/api/gemini';
 
 export const GeminiOperations: React.FC = () => {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [model, setModel] = useState<'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.0-flash'>('gemini-1.5-flash');
-  const [activeTab, setActiveTab] = useState<'uiux' | 'devops'>('uiux');
+  const [model, setModel] = useState<'gemini-1.5-pro' | 'gemini-1.5-flash' | 'gemini-2.0-flash'>('gemini-1.5-pro');
+  const [focusArea, setFocusArea] = useState<'humanize' | 'icons' | 'mobile' | 'contrast'>('humanize');
   const [promptInput, setPromptInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [responseOutput, setResponseOutput] = useState<string | null>(null);
@@ -35,25 +36,14 @@ export const GeminiOperations: React.FC = () => {
       setResponseOutput(null);
 
       const client = new GeminiClient(apiKey, model);
-
-      let result = '';
-      if (activeTab === 'uiux') {
-        result = await client.auditUiUx({
-          screenName: 'KyvonOPS Production Dashboard',
-          userFeedbackPrompt: promptToRun,
-        });
-      } else {
-        result = await client.triageDevOpsIncident({
-          serverAlias: 'prod-fra-01',
-          riskScore: 78,
-          activeAnomalies: ['Kernel Memory PSI stall avg10 > 15.0', 'Nginx 502 Upstream Gateway Timeout'],
-          recentLogsExcerpt: promptToRun,
-        });
-      }
+      const result = await client.auditUiUx({
+        screenName: `KyvonOPS [${focusArea.toUpperCase()}] UI/UX Studio`,
+        userFeedbackPrompt: promptToRun,
+      });
 
       setResponseOutput(result);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Gemini analysis failed');
+      setError(err instanceof Error ? err.message : 'Gemini UI/UX analysis failed');
     } finally {
       setLoading(false);
     }
@@ -77,13 +67,13 @@ export const GeminiOperations: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                Gemini AI Operations & UI/UX Co-pilot
-                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                  Real v1beta API
+                Gemini 3.8 UI/UX Studio & Design Humanizer
+                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">
+                  UI/UX Exclusive
                 </span>
               </h1>
               <p className="text-sm text-secondary">
-                Autonomous UI/UX design reviews, responsive mobile layout optimization, and zero-guesswork DevOps root cause analysis.
+                Dedicated exclusively to Luxury Industrial design systems, Lucide icon harmony, mobile touch ergonomics, and WCAG AAA accessibility.
               </p>
             </div>
           </div>
@@ -94,9 +84,9 @@ export const GeminiOperations: React.FC = () => {
               onChange={(e) => setModel(e.target.value as any)}
               className="bg-background border border-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-info"
             >
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra-fast)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Design Reasoning)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen Rapid)</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra-Fast)</option>
             </select>
           </div>
         </div>
@@ -118,7 +108,7 @@ export const GeminiOperations: React.FC = () => {
             className="px-5 py-2 bg-info hover:bg-info/90 text-background font-semibold text-sm rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
             <CheckCircle className="w-4 h-4" />
-            <span>Save Key</span>
+            <span>Connect Key</span>
           </button>
         </div>
 
@@ -130,51 +120,72 @@ export const GeminiOperations: React.FC = () => {
         )}
       </div>
 
-      {/* Mode Switcher Tabs */}
-      <div className="flex space-x-3 border-b border-border pb-3">
+      {/* Focus Area Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         <button
-          onClick={() => { setActiveTab('uiux'); setResponseOutput(null); }}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === 'uiux'
+          onClick={() => { setFocusArea('humanize'); setResponseOutput(null); }}
+          className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            focusArea === 'humanize'
               ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
               : 'text-secondary hover:text-white hover:bg-elevated'
           }`}
         >
           <Palette className="w-4 h-4" />
-          <span>UI/UX & Mobile Humanizer</span>
+          <span>Humanized Aesthetic & Polish</span>
         </button>
+
         <button
-          onClick={() => { setActiveTab('devops'); setResponseOutput(null); }}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            activeTab === 'devops'
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+          onClick={() => { setFocusArea('icons'); setResponseOutput(null); }}
+          className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            focusArea === 'icons'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
               : 'text-secondary hover:text-white hover:bg-elevated'
           }`}
         >
-          <Activity className="w-4 h-4" />
-          <span>DevOps & Root Cause Radar</span>
+          <ShieldCheck className="w-4 h-4" />
+          <span>Lucide Icon Harmonizer</span>
+        </button>
+
+        <button
+          onClick={() => { setFocusArea('mobile'); setResponseOutput(null); }}
+          className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            focusArea === 'mobile'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+              : 'text-secondary hover:text-white hover:bg-elevated'
+          }`}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span>Mobile Touch & Safe Area (.apk/.ipa)</span>
+        </button>
+
+        <button
+          onClick={() => { setFocusArea('contrast'); setResponseOutput(null); }}
+          className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            focusArea === 'contrast'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+              : 'text-secondary hover:text-white hover:bg-elevated'
+          }`}
+        >
+          <Eye className="w-4 h-4" />
+          <span>WCAG AAA Contrast & Typography</span>
         </button>
       </div>
 
       {/* Main Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Input & Preset Prompts (5 cols) */}
+        {/* Left: Input & UI/UX Presets (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
             <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-              {activeTab === 'uiux' ? <Layout className="w-4 h-4 text-cyan-400" /> : <Cpu className="w-4 h-4 text-amber-400" />}
-              {activeTab === 'uiux' ? 'UI/UX Enhancement Directives' : 'Server Diagnostic Context / Logs'}
+              <Layout className="w-4 h-4 text-cyan-400" />
+              Design Studio Prompt & Component Directives
             </h2>
 
             <textarea
               rows={6}
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
-              placeholder={
-                activeTab === 'uiux'
-                  ? 'Describe what UI/UX aspect you want to improve (e.g. mobile responsiveness for .apk, WCAG AAA color contrast, Lucide icons alignment, or micro-animations)...'
-                  : 'Paste recent journalctl, Nginx error.log, or cgroup memory stall output here...'
-              }
+              placeholder="Paste a component TSX snippet or describe the UI/UX challenge (e.g. improve table readability, mobile bottom sheet ergonomics, or button states)..."
               className="w-full bg-background border border-border rounded-lg p-3 text-xs text-white placeholder-secondary focus:outline-none focus:border-info"
             />
 
@@ -192,87 +203,70 @@ export const GeminiOperations: React.FC = () => {
                 className="px-4 py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{loading ? 'Analyzing with Gemini...' : 'Run Gemini Analysis'}</span>
+                <span>{loading ? 'Consulting Gemini UI/UX...' : 'Generate Design Directives'}</span>
               </button>
             </div>
           </div>
 
-          {/* Quick Preset Prompts */}
-          <div className="bg-surface border border-border rounded-xl p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-secondary mb-3">
-              One-Click Intelligence Presets
+          {/* Quick UI/UX Presets */}
+          <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-secondary mb-3 flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+              Instant UI/UX Directives
             </h3>
             <div className="space-y-2">
-              {activeTab === 'uiux' ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const p = "Review mobile safe-area insets, touch target sizing (min 48px), and bottom navigation layout for Android APK and iOS IPA packaging.";
-                      setPromptInput(p);
-                      executeAnalysis(p);
-                    }}
-                    className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Smartphone className="w-4 h-4 text-info" />
-                      Mobile Safe Area & Touch Target Audit (.apk / .ipa)
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const p = "Audit the icon usage across KyvonOPS. Ensure all raw glyphs and emojis are eliminated in favor of clean, accessible Lucide React icons with consistent stroke widths (stroke-width 1.75).";
-                      setPromptInput(p);
-                      executeAnalysis(p);
-                    }}
-                    className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                      Icon Consistency & Lucide Token Audit
-                    </span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      const p = "nginx: [error] 1482#1482: *491 connect() failed (111: Connection refused) while connecting to upstream, client: 172.68.22.1, server: api.example.com, request: 'GET /api/v1/health HTTP/1.1', upstream: 'http://127.0.0.1:3000/api/v1/health'";
-                      setPromptInput(p);
-                      executeAnalysis(p);
-                    }}
-                    className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Terminal className="w-4 h-4 text-amber-400" />
-                      Nginx 502 Upstream Connection Refused Triage
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      const p = "kernel: [12948.112] oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=docker-7f91,mems_allowed=0,oom_memcg=/system.slice/docker-7f91.scope,task_memcg=/system.slice/docker-7f91.scope,task=node,pid=8412,uid=1000";
-                      setPromptInput(p);
-                      executeAnalysis(p);
-                    }}
-                    className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-400" />
-                      Docker cgroups v2 OOM-Kill Recovery
-                    </span>
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => {
+                  const p = "Review the entire navigation and button system. Replace any emoji or unstyled characters with Lucide React icons (stroke-width 1.75). Provide the exact JSX code.";
+                  setPromptInput(p);
+                  executeAnalysis(p);
+                }}
+                className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                  Lucide Icon System Audit (Stroke 1.75)
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const p = "Audit mobile ergonomics for Android APK and iOS IPA. Ensure all interactive tap targets are at least 48px × 48px and header/footer elements respect env(safe-area-inset-top) and env(safe-area-inset-bottom).";
+                  setPromptInput(p);
+                  executeAnalysis(p);
+                }}
+                className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-400 shrink-0" />
+                  Mobile Touch Targets & Safe-Area Insets
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const p = "Refactor the Outage Risk radar and Digital Twin topology card to follow the Luxury Industrial design language: obsidian background (#090a0f), subtle 1px border (#232738), and high-contrast typography (#f1f5f9).";
+                  setPromptInput(p);
+                  executeAnalysis(p);
+                }}
+                className="w-full text-left p-2.5 rounded-lg bg-background hover:bg-elevated border border-border text-xs text-white transition-colors flex items-center justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <Code2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  Luxury Industrial Dashboard Refactor
+                </span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Right: Response Output Window (7 cols) */}
+        {/* Right: Output Window (7 cols) */}
         <div className="lg:col-span-7">
-          <div className="bg-surface border border-border rounded-xl p-5 h-full flex flex-col">
+          <div className="bg-surface border border-border rounded-xl p-5 h-full flex flex-col shadow-sm">
             <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-bold text-white">Gemini Synthesis & Recommendations</h3>
+                <h3 className="text-sm font-bold text-white">Gemini UI/UX Architectural Output</h3>
               </div>
               {responseOutput && (
                 <button
@@ -289,7 +283,7 @@ export const GeminiOperations: React.FC = () => {
               {loading ? (
                 <div className="h-64 flex flex-col items-center justify-center text-secondary space-y-3">
                   <Sparkles className="w-8 h-8 text-cyan-400 animate-pulse" />
-                  <p className="text-xs">Consulting {model} with live context...</p>
+                  <p className="text-xs">Gemini 3.8 synthesizing humanized UI/UX architecture...</p>
                 </div>
               ) : responseOutput ? (
                 <div className="prose prose-invert max-w-none text-xs leading-relaxed whitespace-pre-wrap font-sans text-secondary bg-background/50 p-4 rounded-lg border border-border">
@@ -297,8 +291,8 @@ export const GeminiOperations: React.FC = () => {
                 </div>
               ) : (
                 <div className="h-64 flex flex-col items-center justify-center text-secondary space-y-2">
-                  <Layout className="w-8 h-8 text-secondary/40" />
-                  <p className="text-xs">No analysis run yet. Enter a directive or click a preset above.</p>
+                  <Palette className="w-8 h-8 text-secondary/40" />
+                  <p className="text-xs">Select an instant directive on the left or paste your component code.</p>
                 </div>
               )}
             </div>

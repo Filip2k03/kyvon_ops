@@ -3,10 +3,10 @@ use kyvon_core::mcp::McpRole;
 use kyvon_policy::mcp_server::McpProtocolHandler;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    eprintln!("[KYVONOPS-MCP] Server initialized. Listening on stdio for Cursor CLI / Claude Code / Codex...");
+    eprintln!("[KYVONOPS-MCP] Listening on stdio for Codex Astra / Claude Opus / Agy Gemini 3.8.");
 
-    // Default to Operator role for local developer control
-    let handler = McpProtocolHandler::new(McpRole::Operator);
+    // No trusted identity or policy provisioning exists yet: default to least privilege.
+    let handler = McpProtocolHandler::new(McpRole::Observer);
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();

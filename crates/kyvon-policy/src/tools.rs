@@ -9,6 +9,42 @@ pub struct McpToolDefinition {
     pub is_read_only: bool,
 }
 
+impl McpToolDefinition {
+    /// Validate the flat string/integer schemas used by this catalog. Unsupported
+    /// schema types fail closed; extend validation before adding new input types.
+    pub fn validate_arguments(&self, args: &Value) -> Result<(), &'static str> {
+        let args = args.as_object().ok_or("Arguments must be an object.")?;
+        let properties = self.input_schema["properties"].as_object()
+            .ok_or("Tool schema is unavailable.")?;
+        if let Some(required) = self.input_schema["required"].as_array() {
+            for name in required {
+                if !name.as_str().is_some_and(|name| args.contains_key(name)) {
+                    return Err("A required argument is missing.");
+                }
+            }
+        }
+        for (name, value) in args {
+            let schema = properties.get(name).ok_or("Unknown argument.")?;
+            match schema["type"].as_str() {
+                Some("string") => {
+                    let value = value.as_str().ok_or("Argument must be a string.")?;
+                    if value.trim().is_empty() || value.len() > 4096 || value.chars().any(char::is_control) {
+                        return Err("String argument is empty, oversized, or contains control characters.");
+                    }
+                }
+                Some("integer") => {
+                    let value = value.as_i64().ok_or("Argument must be an integer.")?;
+                    if name == "lines" && !(1..=1000).contains(&value) {
+                        return Err("Log line count must be between 1 and 1000.");
+                    }
+                }
+                _ => return Err("Unsupported argument schema."),
+            }
+        }
+        Ok(())
+    }
+}
+
 pub fn get_kyvon_mcp_tools() -> Vec<McpToolDefinition> {
     vec![
         // 1. Server Tools
@@ -108,7 +144,7 @@ pub fn get_kyvon_mcp_tools() -> Vec<McpToolDefinition> {
                 "properties": {
                     "server_id": { "type": "string", "description": "Server identifier" },
                     "domain": { "type": "string", "description": "Domain name" },
-                    "lines": { "type": "integer", "default": 50, "description": "Number of log lines to inspect" }
+                    "lines": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 50, "description": "Number of log lines to inspect" }
                 }
             }),
             is_read_only: true,
@@ -247,5 +283,16 @@ mod tests {
         assert!(tools.iter().any(|t| t.name == "kyvon_diagnose_site"));
         assert!(tools.iter().any(|t| t.name == "kyvon_topology_get"));
         assert!(tools.iter().any(|t| t.name == "kyvon_changes_list"));
+    }
+
+    #[test]
+    fn rejects_unbounded_logs_and_undeclared_arguments() {
+        let tools = get_kyvon_mcp_tools();
+        let tool = tools.iter().find(|t| t.name == "kyvon_site_logs").unwrap();
+        for lines in [json!(0), json!(-1), json!(1001), json!(1.5), json!("50")] {
+            assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "lines": lines})).is_err());
+        }
+        assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "lines": 1000})).is_ok());
+        assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "command": "id"})).is_err());
     }
 }

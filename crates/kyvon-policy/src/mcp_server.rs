@@ -127,11 +127,14 @@ impl McpProtocolHandler {
     }
 
     fn dispatch_tool_call(&self, tool_name: &str, args: &Value) -> Value {
-        let server_id = args.get("server_id").and_then(|s| s.as_str()).unwrap_or("default");
-
-        // Role authorization
         let tools = get_kyvon_mcp_tools();
-        if let Some(tool_def) = tools.iter().find(|t| t.name == tool_name) {
+        let Some(tool_def) = tools.iter().find(|t| t.name == tool_name) else {
+            return Self::tool_error("Unknown tool. No operation was executed.");
+        };
+        if let Err(message) = tool_def.validate_arguments(args) {
+            return Self::tool_error(message);
+        }
+        {
             if !tool_def.is_read_only && !self.role.can_write() {
                 return json!({
                     "content": [{
@@ -142,37 +145,31 @@ impl McpProtocolHandler {
                 });
             }
 
-            // Gated mutation operations require Approval
-            if !tool_def.is_read_only {
-                let risk = ApprovalGate::assess_operation_risk(tool_name, args.get("environment").and_then(|e| e.as_str()));
-                let req = self.approval_gate.create_request(
-                    server_id,
-                    "AI Agent",
-                    tool_name,
-                    &format!("Operation {} requested on server {}", tool_name, server_id),
-                    risk,
-                    vec![format!("Command for {}", tool_name)],
-                    "Service state mutation",
-                );
+            // A client-supplied environment cannot establish a trusted target scope.
+            // Until server scopes are resolved, developers cannot propose writes.
+            if !tool_def.is_read_only && !self.role.can_deploy_production() {
+                return Self::tool_error("Permission denied: trusted server and environment scopes are not configured.");
+            }
 
-                return json!({
-                    "content": [{
-                        "type": "text",
-                        "text": format!("PROPOSED ACTION REQUIRES HUMAN APPROVAL\nRequest ID: {}\nRisk: {:?}\nApproval Status: Pending\nPlease approve in KyvonOPS Desktop.", req.request_id, risk)
-                    }],
-                    "approval_required": true,
-                    "request_id": req.request_id
-                });
+            // Do not create fake approvals that cannot reach a trusted human or executor.
+            if !tool_def.is_read_only {
+                return Self::tool_error("Unavailable: trusted approval and execution bridges are not configured. No approval was created and no operation was executed.");
             }
         }
 
-        // Executed read-only simulated output (actual values populated from storage/telemetry)
+        // There is no storage/telemetry or trusted execution bridge attached yet.
+        // Never turn missing implementation into operational success.
         json!({
             "content": [{
                 "type": "text",
-                "text": format!("KyvonOPS 2.0 Engine: Executed '{}' successfully for server '{}'.", tool_name, server_id)
-            }]
+                "text": "Unavailable: this MCP gateway has no infrastructure backend attached. No operation was executed and no infrastructure state was verified."
+            }],
+            "isError": true
         })
+    }
+
+    fn tool_error(message: &str) -> Value {
+        json!({"isError": true, "content": [{"type": "text", "text": message}]})
     }
 }
 
@@ -196,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn enforces_human_approval_on_mutation() {
+    fn unconnected_mutation_fails_without_fake_approval() {
         let handler = McpProtocolHandler::new(McpRole::Operator);
         let req = json!({
             "jsonrpc": "2.0",
@@ -214,6 +211,38 @@ mod tests {
         });
 
         let res = handler.handle_rpc(&req.to_string());
-        assert_eq!(res["result"]["approval_required"], true);
+        assert_eq!(res["result"]["isError"], true);
+        assert!(res["result"].get("request_id").is_none());
+        assert!(handler.approval_gate.get_pending().is_empty());
+    }
+
+    #[test]
+    fn unknown_and_unconnected_read_tools_never_report_success() {
+        let handler = McpProtocolHandler::new(McpRole::Observer);
+        for name in ["exec_shell", "kyvon_server_delete", "kyvon_server_health"] {
+            let result = handler.dispatch_tool_call(name, &json!({"server_id": "prod-01"}));
+            assert_eq!(result["isError"], true);
+            assert!(!result.to_string().contains("successfully"));
+        }
+    }
+
+    #[test]
+    fn invalid_arguments_cannot_create_approvals() {
+        let handler = McpProtocolHandler::new(McpRole::Administrator);
+        for args in [json!({}), json!({"server_id": 1}), json!({"server_id": ""}), json!([])] {
+            assert_eq!(handler.dispatch_tool_call("kyvon_reload_nginx", &args)["isError"], true);
+        }
+        assert!(handler.approval_gate.get_pending().is_empty());
+    }
+
+    #[test]
+    fn developer_cannot_assert_staging_to_bypass_target_authorization() {
+        let handler = McpProtocolHandler::new(McpRole::Developer);
+        let result = handler.dispatch_tool_call("kyvon_deploy", &json!({
+            "server_id": "prod-01", "application": "api", "version": "v1", "environment": "staging"
+        }));
+        assert_eq!(result["isError"], true);
+        assert!(result.to_string().contains("Permission denied"));
+        assert!(handler.approval_gate.get_pending().is_empty());
     }
 }

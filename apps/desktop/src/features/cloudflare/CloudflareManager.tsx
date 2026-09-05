@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Globe, Shield, RefreshCw, Plus, Trash2, Key, CheckCircle, AlertCircle, 
-  Server, Terminal, Lock, Flame
+  Server, Terminal, Lock, Flame, Radio, Zap, Copy
 } from 'lucide-react';
 import { CloudflareClient } from '../../lib/api/cloudflare';
 import { CloudflareZone, CloudflareDnsRecord, CloudflareSslSetting } from '../../lib/api/types';
 import { ReverseProxyGenerator } from '../../lib/api/reverseProxy';
+import { CloudflareTunnelGenerator } from '../../lib/api/cloudflareTunnel';
 
 export const CloudflareManager: React.FC = () => {
   const [apiToken, setApiToken] = useState(() => localStorage.getItem('cf_api_token') || '');
@@ -38,6 +39,12 @@ export const CloudflareManager: React.FC = () => {
   const [proxyDomain, setProxyDomain] = useState('');
   const [generatedProxyType, setGeneratedProxyType] = useState<'caddy' | 'nginx'>('caddy');
   const [generatedConfig, setGeneratedConfig] = useState('');
+
+  // Cloudflare Free Plan Tunnel State
+  const [tunnelId, setTunnelId] = useState('tun_prod_kyvon');
+  const [tunnelToken, setTunnelToken] = useState('eyJhIjoiY2xvdWRmbGFyZSIsInQiOiJmcmVlX3BsYW5fdHVubmVsIn0=');
+  const [activeSubTab, setActiveSubTab] = useState<'dns' | 'tunnel' | 'proxy'>('dns');
+  const [generatedTunnelScript, setGeneratedTunnelScript] = useState('');
 
   const handleSaveToken = () => {
     if (!apiToken.trim()) return;
@@ -322,7 +329,45 @@ export const CloudflareManager: React.FC = () => {
         </div>
       </div>
 
-      {/* DNS Records Section */}
+      {/* Navigation Sub-Tabs */}
+      <div className="flex space-x-2 border-b border-border pb-3">
+        <button
+          onClick={() => setActiveSubTab('dns')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+            activeSubTab === 'dns'
+              ? 'bg-info/20 text-info border border-info/30'
+              : 'text-secondary hover:text-white hover:bg-elevated'
+          }`}
+        >
+          <Shield className="w-3.5 h-3.5" />
+          <span>Edge DNS & CDN Shield</span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('tunnel')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+            activeSubTab === 'tunnel'
+              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              : 'text-secondary hover:text-white hover:bg-elevated'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5" />
+          <span>Free Plan Tunnel (Zero Open Ports)</span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('proxy')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+            activeSubTab === 'proxy'
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'text-secondary hover:text-white hover:bg-elevated'
+          }`}
+        >
+          <Server className="w-3.5 h-3.5" />
+          <span>Hardened Caddy / Nginx</span>
+        </button>
+      </div>
+
+      {/* Conditional Content Based on Active SubTab */}
+      {activeSubTab === 'dns' && (
       <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
@@ -437,8 +482,147 @@ export const CloudflareManager: React.FC = () => {
           </table>
         </div>
       </div>
+      )}
+
+      {/* Free Plan Cloudflare Tunnels (Zero Open Ports) Sub-Tab */}
+      {activeSubTab === 'tunnel' && (
+      <div className="space-y-6">
+        <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400">
+              <Radio className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                Cloudflare Free Tier Tunnel Provisioner (Zero Inbound Ports)
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  100% Free Plan Supported
+                </span>
+              </h2>
+              <p className="text-xs text-secondary">
+                No public IPv4 required, no firewall ports open (port 80/443 closed). The VPS establishes an outbound multiplexed QUIC tunnel to Cloudflare Edge.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 pt-3">
+            <div>
+              <label className="block text-xs text-secondary mb-1">Tunnel Name</label>
+              <input
+                type="text"
+                value={tunnelId}
+                onChange={(e) => setTunnelId(e.target.value)}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-secondary mb-1">Target Public Hostname</label>
+              <input
+                type="text"
+                value={proxyDomain}
+                onChange={(e) => setProxyDomain(e.target.value)}
+                placeholder="app.example.com"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-secondary mb-1">VPS Local Port/Socket</label>
+              <input
+                type="text"
+                value={proxyTarget}
+                onChange={(e) => setProxyTarget(e.target.value)}
+                placeholder="http://127.0.0.1:3000"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs text-secondary mb-1">Cloudflare Tunnel Token (from Zero Trust Dashboard)</label>
+            <input
+              type="password"
+              value={tunnelToken}
+              onChange={(e) => setTunnelToken(e.target.value)}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white font-mono"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3 mb-6">
+            <button
+              onClick={() => {
+                const script = CloudflareTunnelGenerator.generateDeploymentScript({
+                  tunnelId,
+                  tunnelName: tunnelId,
+                  accountTag: 'free_tier',
+                  domain: proxyDomain || 'app.example.com',
+                  localService: proxyTarget || 'http://127.0.0.1:3000',
+                }, tunnelToken);
+                setGeneratedTunnelScript(script);
+              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-500/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center space-x-2"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>Generate One-Click Linux Installer Script</span>
+            </button>
+          </div>
+
+          {generatedTunnelScript && (
+            <div className="relative">
+              <pre className="p-4 bg-background border border-border rounded-lg text-xs font-mono text-amber-300 overflow-x-auto max-h-80">
+                {generatedTunnelScript}
+              </pre>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedTunnelScript);
+                  setSuccessMsg('Deployment script copied to clipboard! Paste into your VPS terminal.');
+                }}
+                className="absolute top-3 right-3 px-3 py-1 bg-surface border border-border rounded text-[11px] text-white hover:bg-elevated transition-colors flex items-center space-x-1"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Script</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Free Plan Best Practices Checklist */}
+        <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            Cloudflare Free Plan Full Security Checklist
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">1. Universal SSL / Full Strict</span>
+              <p className="text-secondary text-[11px]">Enforce end-to-end encryption with Cloudflare Origin CA certificate.</p>
+            </div>
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">2. Bot Fight Mode (Free)</span>
+              <p className="text-secondary text-[11px]">Blocks automated crawlers, scrapers, and malicious request bursts.</p>
+            </div>
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">3. HTTP/3 with QUIC & 0-RTT</span>
+              <p className="text-secondary text-[11px]">Enables zero-latency roundtrips and connection resumption for mobile.</p>
+            </div>
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">4. Brotli Compression (Free)</span>
+              <p className="text-secondary text-[11px]">Reduces text asset payload size by up to 20% compared to standard gzip.</p>
+            </div>
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">5. Always Use HTTPS</span>
+              <p className="text-secondary text-[11px]">Redirects all plain HTTP port 80 requests to secure port 443 at the edge.</p>
+            </div>
+            <div className="p-3 bg-background border border-border rounded-lg space-y-1">
+              <span className="font-bold text-white">6. Zero-Trust Tunnel Access</span>
+              <p className="text-secondary text-[11px]">Safeguards internal admin dashboards behind Cloudflare Access 2FA login.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
 
       {/* Reverse Proxy Config Generator */}
+      {activeSubTab === 'proxy' && (
       <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
@@ -514,9 +698,10 @@ export const CloudflareManager: React.FC = () => {
             >
               Copy
             </button>
-          </div>
+            </div>
         )}
       </div>
+      )}
     </div>
   );
 };
