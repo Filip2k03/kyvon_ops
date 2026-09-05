@@ -1,0 +1,36 @@
+name: CI Validation Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  rust-validation:
+    name: Rust Workspace Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Rustfmt Check
+        run: cargo fmt --all -- --check
+      - name: Clippy Static Analysis
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Cargo Test Suite
+        run: cargo test --workspace --all-features
+
+  frontend-validation:
+    name: Desktop Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install Desktop Dependencies
+        run: cd apps/desktop && bun install --frozen-lockfile
+      - name: TypeScript & Vite Build
+        run: cd apps/desktop && bun run build

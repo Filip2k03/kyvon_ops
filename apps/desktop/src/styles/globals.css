@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-primary antialiased select-none;
+    overflow-x: hidden;
+  }
+
+  /* Cross-Platform Custom Thin Scrollbars (Windows & Linux) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* Text selection styling */
+  ::selection {
+    background: rgba(0, 242, 152, 0.25);
+    color: #F1F3F5;
+  }
+}
+
+/* Tauri window drag region support */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+button, input, select, textarea, [role="button"] {
+  -webkit-app-region: no-drag;
+}

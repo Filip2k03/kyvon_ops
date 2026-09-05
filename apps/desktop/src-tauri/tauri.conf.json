@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KyvonOPS",
+  "version": "2.0.0",
+  "identifier": "com.kyvon.ops",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "KyvonOPS",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1080,
+        "minHeight": 640,
+        "decorations": true,
+        "theme": "Dark",
+        "transparent": false,
+        "macOS": {
+          "titleBarStyle": "Overlay"
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' asset: http: https: ws: wss:; img-src 'self' asset: https: data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "nsis", "dmg"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": ""
+    },
+    "windows": {
+      "nsis": {
+        "languages": ["en-US"],
+        "displayLanguageSelector": false
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libappindicator3-1",
+          "librsvg2-2",
+          "libssl3"
+        ]
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkKUldUVzU0UUpvR0V5S3Rhdkc0d0l5NndqVDFKcmN3L3IvcjdxUzdnKzJkU1Z3Szh3Z01zR2pDdz0K",
+      "endpoints": [
+        "https://kyvonops.sys.thuyakyaw.com/releases/latest.json"
+      ]
+    }
+  }
+}
