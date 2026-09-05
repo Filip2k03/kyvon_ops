@@ -3,7 +3,12 @@ dist/
 target/
 .DS_Store
 *.log
+*.tsbuildinfo
 apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/target/
+apps/desktop/generate_frontend.py
+apps/desktop/*.d.ts
+apps/desktop/*.config.js
 .env
 .env.*
 !.env.example

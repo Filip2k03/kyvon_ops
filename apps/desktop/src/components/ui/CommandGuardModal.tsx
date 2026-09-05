@@ -1,0 +1,1 @@
+export const CommandGuardModal = () => { return null; }; // Placeholder

@@ -1,0 +1,1 @@
+export const Toast = () => { return null; }; // Placeholder

@@ -1,0 +1,1 @@
+export const LogCenter = () => { return <div>Logs</div>; };

@@ -1,0 +1,1 @@
+export const ConfirmDialog = () => { return null; }; // Placeholder for dialog logic

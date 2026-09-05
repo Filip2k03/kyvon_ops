@@ -1,0 +1,1 @@
+export const SecurityCenter = () => { return <div>Security</div>; };

@@ -1,0 +1,1 @@
+export const ServerDetail = () => { return <div>Server Detail</div>; };
