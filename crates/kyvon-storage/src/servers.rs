@@ -265,7 +265,13 @@ mod tests {
         for (i, alias) in ["zeta", "Alpha", "middle"].iter().enumerate() {
             r.upsert(&profile(&format!("s{i}"), alias)).await.unwrap();
         }
-        let aliases: Vec<String> = r.list().await.unwrap().into_iter().map(|s| s.alias).collect();
+        let aliases: Vec<String> = r
+            .list()
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|s| s.alias)
+            .collect();
         assert_eq!(aliases, vec!["Alpha", "middle", "zeta"]);
     }
 

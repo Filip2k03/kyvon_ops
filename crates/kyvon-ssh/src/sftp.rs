@@ -44,11 +44,24 @@ pub enum EntryKind {
 /// Names that usually contain secrets.
 fn looks_sensitive(name: &str) -> bool {
     const NAMES: &[&str] = &[
-        ".env", "id_rsa", "id_ed25519", "id_ecdsa", ".pem", ".key", ".p12", ".pfx",
-        "credentials", ".netrc", ".pgpass", "shadow", ".htpasswd",
+        ".env",
+        "id_rsa",
+        "id_ed25519",
+        "id_ecdsa",
+        ".pem",
+        ".key",
+        ".p12",
+        ".pfx",
+        "credentials",
+        ".netrc",
+        ".pgpass",
+        "shadow",
+        ".htpasswd",
     ];
     let lower = name.to_ascii_lowercase();
-    NAMES.iter().any(|n| lower == *n || lower.ends_with(n) || lower.starts_with(n))
+    NAMES
+        .iter()
+        .any(|n| lower == *n || lower.ends_with(n) || lower.starts_with(n))
 }
 
 fn permissions_string(mode: u32) -> String {
@@ -168,11 +181,7 @@ pub async fn write_text_file(sftp: &SftpSession, path: &str, contents: &str) -> 
 /// A preview of a file's first lines, with probable secrets masked.
 pub async fn preview(sftp: &SftpSession, path: &str, max_lines: usize) -> Result<String> {
     let text = read_text_file(sftp, path).await?;
-    let head: String = text
-        .lines()
-        .take(max_lines)
-        .collect::<Vec<_>>()
-        .join("\n");
+    let head: String = text.lines().take(max_lines).collect::<Vec<_>>().join("\n");
     Ok(redact(&head))
 }
 
@@ -216,8 +225,12 @@ mod tests {
 
     #[test]
     fn deleting_system_paths_needs_the_strongest_confirmation() {
-        assert!(deletion_requires_typed_confirmation("/etc/nginx/nginx.conf"));
+        assert!(deletion_requires_typed_confirmation(
+            "/etc/nginx/nginx.conf"
+        ));
         assert!(deletion_requires_typed_confirmation("/boot/vmlinuz"));
-        assert!(!deletion_requires_typed_confirmation("/var/www/html/old.html"));
+        assert!(!deletion_requires_typed_confirmation(
+            "/var/www/html/old.html"
+        ));
     }
 }

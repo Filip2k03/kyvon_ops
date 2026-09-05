@@ -98,7 +98,9 @@ pub fn parse_ps(contents: &str) -> Result<Vec<ProcessInfo>> {
         if line.is_empty() {
             continue;
         }
-        let mut it = line.splitn(9, char::is_whitespace).filter(|s| !s.is_empty());
+        let mut it = line
+            .splitn(9, char::is_whitespace)
+            .filter(|s| !s.is_empty());
         // splitn with a filter can still yield too few parts on malformed
         // input, so rebuild explicitly with a tolerant field walker.
         let fields: Vec<&str> = {
@@ -121,7 +123,9 @@ pub fn parse_ps(contents: &str) -> Result<Vec<ProcessInfo>> {
         if fields.len() < 9 {
             continue;
         }
-        let Ok(pid) = fields[0].parse::<u32>() else { continue };
+        let Ok(pid) = fields[0].parse::<u32>() else {
+            continue;
+        };
         out.push(ProcessInfo {
             pid,
             ppid: fields[1].parse().unwrap_or(0),
@@ -205,8 +209,12 @@ pub fn parse_ss(contents: &str) -> Result<Vec<PortInfo>> {
         let netid = f[0];
         // UDP rows report state `UNCONN`; TCP rows report `LISTEN`.
         let local = f[4];
-        let Some((addr, port_str)) = local.rsplit_once(':') else { continue };
-        let Ok(port) = port_str.parse::<u16>() else { continue };
+        let Some((addr, port_str)) = local.rsplit_once(':') else {
+            continue;
+        };
+        let Ok(port) = port_str.parse::<u16>() else {
+            continue;
+        };
 
         let (process, pid) = parse_ss_users(line);
 
@@ -296,7 +304,10 @@ tmpfs         2087604224           0  2087604224       0% /run/user/1000
         assert_eq!(root.inodes_total, 6_553_600);
         assert!((root.inodes_used_pct().unwrap() - 6.291).abs() < 0.01);
         assert!(root.is_real_storage());
-        let run = fs.iter().find(|f| f.mount_point == "/run/user/1000").unwrap();
+        let run = fs
+            .iter()
+            .find(|f| f.mount_point == "/run/user/1000")
+            .unwrap();
         assert!(!run.is_real_storage());
     }
 
@@ -332,7 +343,11 @@ tmpfs         2087604224           0  2087604224       0% /run/user/1000
     fn redacts_secrets_in_command_lines() {
         let p = parse_ps(PS).unwrap();
         let backup = p.iter().find(|x| x.pid == 1600).unwrap();
-        assert!(!backup.command.contains("hunter2"), "leaked: {}", backup.command);
+        assert!(
+            !backup.command.contains("hunter2"),
+            "leaked: {}",
+            backup.command
+        );
         assert!(backup.command.contains("/usr/bin/backup"));
     }
 
@@ -359,8 +374,16 @@ some-flaky.service     loaded activating auto-restart Flaky Thing
         let nginx = s.iter().find(|u| u.unit == "nginx.service").unwrap();
         assert!(nginx.is_running());
         assert_eq!(nginx.description, "A high performance web server");
-        assert!(s.iter().find(|u| u.unit == "fail2ban.service").unwrap().is_failed());
-        assert!(!s.iter().find(|u| u.unit == "postgresql.service").unwrap().is_running());
+        assert!(s
+            .iter()
+            .find(|u| u.unit == "fail2ban.service")
+            .unwrap()
+            .is_failed());
+        assert!(!s
+            .iter()
+            .find(|u| u.unit == "postgresql.service")
+            .unwrap()
+            .is_running());
         assert!(s
             .iter()
             .find(|u| u.unit == "some-flaky.service")
@@ -371,9 +394,16 @@ some-flaky.service     loaded activating auto-restart Flaky Thing
     #[test]
     fn merges_boot_enablement() {
         let mut s = parse_systemctl_units(UNITS).unwrap();
-        merge_unit_enablement(&mut s, "nginx.service enabled enabled\nfail2ban.service disabled\n");
+        merge_unit_enablement(
+            &mut s,
+            "nginx.service enabled enabled\nfail2ban.service disabled\n",
+        );
         assert_eq!(
-            s.iter().find(|u| u.unit == "nginx.service").unwrap().enabled.as_deref(),
+            s.iter()
+                .find(|u| u.unit == "nginx.service")
+                .unwrap()
+                .enabled
+                .as_deref(),
             Some("enabled")
         );
     }

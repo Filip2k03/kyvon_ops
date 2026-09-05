@@ -35,9 +35,7 @@ impl PresentedKey {
             .map_err(|e| KyvonError::Transport(format!("could not encode host key: {e}")))?;
         Ok(Self {
             key_type: public.algorithm().as_str().to_string(),
-            fingerprint: public
-                .fingerprint(russh::keys::HashAlg::Sha256)
-                .to_string(),
+            fingerprint: public.fingerprint(russh::keys::HashAlg::Sha256).to_string(),
             openssh,
         })
     }

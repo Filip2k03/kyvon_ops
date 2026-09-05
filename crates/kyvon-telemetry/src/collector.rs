@@ -211,10 +211,7 @@ impl BlockReader {
                     hostname: f[0].trim().to_string(),
                     kernel: f[1].trim().to_string(),
                     arch: f[2].trim().to_string(),
-                    capabilities: f[3]
-                        .split_ascii_whitespace()
-                        .map(str::to_string)
-                        .collect(),
+                    capabilities: f[3].split_ascii_whitespace().map(str::to_string).collect(),
                 }))
             }
             "TICK" => {
@@ -319,7 +316,10 @@ cpu  200 0 100 1600 100 0 0 0
         assert_eq!(blocks[0].ts, 1_770_000_000_000);
         assert_eq!(blocks[0].seq, 0);
         assert_eq!(blocks[0].sections.len(), 2);
-        assert_eq!(blocks[0].section("stat").unwrap().trim(), "cpu  100 0 50 800 50 0 0 0");
+        assert_eq!(
+            blocks[0].section("stat").unwrap().trim(),
+            "cpu  100 0 50 800 50 0 0 0"
+        );
         assert!(blocks[0].section("meminfo").unwrap().contains("MemTotal"));
     }
 
@@ -365,8 +365,22 @@ cpu  200 0 100 1600 100 0 0 0
     #[test]
     fn collector_script_only_reads() {
         const FORBIDDEN: &[&str] = &[
-            "rm ", "mv ", "cp ", "chmod", "chown", "mkdir", "touch", "systemctl start",
-            "systemctl stop", "systemctl restart", "curl", "wget", "apt", "yum", "dnf", ">>",
+            "rm ",
+            "mv ",
+            "cp ",
+            "chmod",
+            "chown",
+            "mkdir",
+            "touch",
+            "systemctl start",
+            "systemctl stop",
+            "systemctl restart",
+            "curl",
+            "wget",
+            "apt",
+            "yum",
+            "dnf",
+            ">>",
             "tee ",
         ];
         for f in FORBIDDEN {

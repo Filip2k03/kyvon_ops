@@ -37,7 +37,11 @@ pub fn calculate_resource_breakdown(
     let other_pct = (total_cpu_pct - classified).max(0.0);
 
     let mut sorted_consumers = consumers.to_vec();
-    sorted_consumers.sort_by(|a, b| b.percentage.partial_cmp(&a.percentage).unwrap_or(std::cmp::Ordering::Equal));
+    sorted_consumers.sort_by(|a, b| {
+        b.percentage
+            .partial_cmp(&a.percentage)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     VpsResourceBreakdown {
         total_cpu_pct,

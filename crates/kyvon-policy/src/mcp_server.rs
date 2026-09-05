@@ -1,9 +1,9 @@
-use serde_json::{json, Value};
 use crate::approvals::ApprovalGate;
 use crate::redactor::sanitize_json_value;
 use crate::tokens::TokenAuthority;
 use crate::tools::get_kyvon_mcp_tools;
 use kyvon_core::mcp::McpRole;
+use serde_json::{json, Value};
 
 pub struct McpProtocolHandler {
     pub role: McpRole,
@@ -148,7 +148,9 @@ impl McpProtocolHandler {
             // A client-supplied environment cannot establish a trusted target scope.
             // Until server scopes are resolved, developers cannot propose writes.
             if !tool_def.is_read_only && !self.role.can_deploy_production() {
-                return Self::tool_error("Permission denied: trusted server and environment scopes are not configured.");
+                return Self::tool_error(
+                    "Permission denied: trusted server and environment scopes are not configured.",
+                );
             }
 
             // Do not create fake approvals that cannot reach a trusted human or executor.
@@ -229,8 +231,16 @@ mod tests {
     #[test]
     fn invalid_arguments_cannot_create_approvals() {
         let handler = McpProtocolHandler::new(McpRole::Administrator);
-        for args in [json!({}), json!({"server_id": 1}), json!({"server_id": ""}), json!([])] {
-            assert_eq!(handler.dispatch_tool_call("kyvon_reload_nginx", &args)["isError"], true);
+        for args in [
+            json!({}),
+            json!({"server_id": 1}),
+            json!({"server_id": ""}),
+            json!([]),
+        ] {
+            assert_eq!(
+                handler.dispatch_tool_call("kyvon_reload_nginx", &args)["isError"],
+                true
+            );
         }
         assert!(handler.approval_gate.get_pending().is_empty());
     }

@@ -141,9 +141,9 @@ The Rust workspace compiles and its tests pass. Almost nothing above that line i
 4. **Command names disagree across the boundary.** The frontend invokes `get_servers`,
    `terminal_write`, `terminal_resize`; the backend registers `list_servers`,
    `write_terminal`, `resize_terminal`.
-5. **`bun run build` currently fails** — `noUnusedLocals`/`noUnusedParameters` are on and
-   `CloudflareManager.tsx` has unused imports and state. Ten feature screens and several UI
-   components are one-line placeholders (`export const LogCenter = () => <div>Logs</div>`).
+5. **Ten feature screens and several UI components are one-line placeholders** —
+   `export const LogCenter = () => <div>Logs</div>`. `bun run build` passes, so a green
+   build says nothing about whether a screen exists.
 6. **`bun run lint` fails** — `package.json` declares `eslint .` but no ESLint config or
    dependency exists.
 7. **`agent/` has no Rust crate**, only `bootstrap.sh` (which embeds a POSIX shell

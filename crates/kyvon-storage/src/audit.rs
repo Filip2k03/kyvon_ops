@@ -1,4 +1,4 @@
-use kyvon_core::{redact, RiskTier, Result, TimestampMs};
+use kyvon_core::{redact, Result, RiskTier, TimestampMs};
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
 
@@ -82,7 +82,12 @@ impl AuditEvent {
         self
     }
 
-    pub fn with_result(mut self, exit_status: Option<u32>, excerpt: &str, duration_ms: u64) -> Self {
+    pub fn with_result(
+        mut self,
+        exit_status: Option<u32>,
+        excerpt: &str,
+        duration_ms: u64,
+    ) -> Self {
         self.exit_status = exit_status.map(|s| s as i64);
         self.duration_ms = Some(duration_ms as i64);
         self.result_excerpt = Some(excerpt.chars().take(2000).collect());
@@ -136,15 +141,13 @@ impl AuditRepo {
     pub async fn recent(&self, server_id: Option<&str>, limit: u32) -> Result<Vec<AuditEvent>> {
         let limit = limit.clamp(1, 1000) as i64;
         let rows = match server_id {
-            Some(id) => {
-                sqlx::query(
-                    "SELECT * FROM audit_events WHERE server_id = ?1 ORDER BY created_at DESC LIMIT ?2",
-                )
-                .bind(id)
-                .bind(limit)
-                .fetch_all(self.db.pool())
-                .await
-            }
+            Some(id) => sqlx::query(
+                "SELECT * FROM audit_events WHERE server_id = ?1 ORDER BY created_at DESC LIMIT ?2",
+            )
+            .bind(id)
+            .bind(limit)
+            .fetch_all(self.db.pool())
+            .await,
             None => {
                 sqlx::query("SELECT * FROM audit_events ORDER BY created_at DESC LIMIT ?1")
                     .bind(limit)
@@ -228,15 +231,24 @@ mod tests {
     async fn secrets_never_enter_the_ledger() {
         let r = repo().await;
         r.record(
-            &AuditEvent::new(None, "exec", "connect to db", RiskTier::Low, Outcome::Success)
-                .with_command("psql postgres://app:hunter2@db:5432/prod")
-                .with_result(Some(0), "PGPASSWORD=swordfish accepted", 10),
+            &AuditEvent::new(
+                None,
+                "exec",
+                "connect to db",
+                RiskTier::Low,
+                Outcome::Success,
+            )
+            .with_command("psql postgres://app:hunter2@db:5432/prod")
+            .with_result(Some(0), "PGPASSWORD=swordfish accepted", 10),
         )
         .await
         .unwrap();
 
         let got = &r.recent(None, 1).await.unwrap()[0];
-        assert!(!got.command.as_ref().unwrap().contains("hunter2"), "{got:?}");
+        assert!(
+            !got.command.as_ref().unwrap().contains("hunter2"),
+            "{got:?}"
+        );
         assert!(
             !got.result_excerpt.as_ref().unwrap().contains("swordfish"),
             "{got:?}"
@@ -275,7 +287,10 @@ mod tests {
         ))
         .await
         .unwrap();
-        assert_eq!(r.recent(None, 1).await.unwrap()[0].outcome, Outcome::Cancelled);
+        assert_eq!(
+            r.recent(None, 1).await.unwrap()[0].outcome,
+            Outcome::Cancelled
+        );
     }
 
     #[tokio::test]

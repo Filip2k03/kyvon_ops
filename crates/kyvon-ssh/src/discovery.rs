@@ -5,9 +5,7 @@
 //! [`HostFacts`]. Every check is a read; nothing is installed and nothing is
 //! configured.
 
-use kyvon_core::{
-    caps, Capabilities, CapabilityProbe, CloudHint, Confidence, HostFacts, Result,
-};
+use kyvon_core::{caps, Capabilities, CapabilityProbe, CloudHint, Confidence, HostFacts, Result};
 
 use crate::session::SshSession;
 
@@ -78,10 +76,7 @@ pub fn parse_probe(output: &str) -> HostFacts {
         capabilities.set(key, flag(&format!("cap.{probe_name}")));
     }
     // Apache ships as `httpd` on Red Hat family and `apache2` on Debian.
-    capabilities.set(
-        caps::APACHE,
-        flag("cap.httpd") || flag("cap.apache2"),
-    );
+    capabilities.set(caps::APACHE, flag("cap.httpd") || flag("cap.apache2"));
     capabilities.set(caps::MYSQL, flag("cap.mysql") || flag("cap.mariadb"));
     capabilities.set(caps::PROC, flag("cap.proc"));
     capabilities.set(caps::EBPF, flag("cap.ebpf"));
@@ -333,7 +328,10 @@ dmi.product=Droplet
         assert_eq!(c.confidence, Confidence::High);
         assert!(c.evidence.contains("DigitalOcean"));
 
-        assert_eq!(detect_cloud("Amazon EC2", "t3.medium").unwrap().provider, "AWS");
+        assert_eq!(
+            detect_cloud("Amazon EC2", "t3.medium").unwrap().provider,
+            "AWS"
+        );
         assert_eq!(
             detect_cloud("Hetzner", "vServer").unwrap().provider,
             "Hetzner"

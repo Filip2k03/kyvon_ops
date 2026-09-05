@@ -67,7 +67,6 @@ pub fn parse_nginx_config(config_text: &str) -> NginxConfigDump {
                 let target = line
                     .trim_start_matches("server ")
                     .trim_end_matches(';')
-                    .trim()
                     .split_whitespace()
                     .next()
                     .unwrap_or("")

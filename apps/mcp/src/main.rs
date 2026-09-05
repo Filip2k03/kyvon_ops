@@ -1,6 +1,6 @@
-use std::io::{self, BufRead, Write};
 use kyvon_core::mcp::McpRole;
 use kyvon_policy::mcp_server::McpProtocolHandler;
+use std::io::{self, BufRead, Write};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("[KYVONOPS-MCP] Listening on stdio for Codex Astra / Claude Opus / Agy Gemini 3.8.");

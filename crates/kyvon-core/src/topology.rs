@@ -1,6 +1,6 @@
+use crate::TimestampMs;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::TimestampMs;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

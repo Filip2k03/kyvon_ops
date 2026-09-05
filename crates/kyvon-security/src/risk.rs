@@ -137,9 +137,9 @@ impl Segment {
 
     /// True for a short flag bundled with others, e.g. `f` in `-rf`.
     fn has_short_flag(&self, ch: char) -> bool {
-        self.args().iter().any(|a| {
-            a.starts_with('-') && !a.starts_with("--") && a[1..].chars().any(|c| c == ch)
-        })
+        self.args()
+            .iter()
+            .any(|a| a.starts_with('-') && !a.starts_with("--") && a[1..].chars().any(|c| c == ch))
     }
 
     /// First argument that is not a flag — usually the subcommand.
@@ -164,7 +164,9 @@ impl Segment {
 impl Parsed {
     fn pipes_download_into_shell(&self) -> bool {
         const DOWNLOADERS: &[&str] = &["curl", "wget", "fetch"];
-        const SHELLS: &[&str] = &["sh", "bash", "zsh", "dash", "ksh", "python", "python3", "perl", "ruby"];
+        const SHELLS: &[&str] = &[
+            "sh", "bash", "zsh", "dash", "ksh", "python", "python3", "perl", "ruby",
+        ];
         for pair in self.segments.windows(2) {
             let (a, b) = (&pair[0], &pair[1]);
             if !b.reads_pipe {
@@ -194,10 +196,10 @@ fn parse(input: &str) -> Parsed {
     let mut i = 0usize;
 
     let push_word = |current: &mut String,
-                         has_current: &mut bool,
-                         words: &mut Vec<String>,
-                         parsed: &mut Parsed,
-                         pending_redirect: &mut Option<()>| {
+                     has_current: &mut bool,
+                     words: &mut Vec<String>,
+                     parsed: &mut Parsed,
+                     pending_redirect: &mut Option<()>| {
         if *has_current {
             if pending_redirect.take().is_some() {
                 parsed.write_redirect_targets.push(current.clone());
@@ -209,9 +211,14 @@ fn parse(input: &str) -> Parsed {
         }
     };
 
-    let end_segment = |words: &mut Vec<String>, parsed: &mut Parsed, reads_pipe: &mut bool, next_reads_pipe: bool| {
+    let end_segment = |words: &mut Vec<String>,
+                       parsed: &mut Parsed,
+                       reads_pipe: &mut bool,
+                       next_reads_pipe: bool| {
         if !words.is_empty() {
-            parsed.segments.push(build_segment(std::mem::take(words), *reads_pipe));
+            parsed
+                .segments
+                .push(build_segment(std::mem::take(words), *reads_pipe));
         }
         *reads_pipe = next_reads_pipe;
     };
@@ -286,32 +293,68 @@ fn parse(input: &str) -> Parsed {
                 current.push_str("`…`");
             }
             ' ' | '\t' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 i += 1;
             }
             '|' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 let double = bytes.get(i + 1) == Some(&'|');
                 end_segment(&mut words, &mut parsed, &mut reads_pipe, !double);
                 i += if double { 2 } else { 1 };
             }
             ';' | '\n' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 end_segment(&mut words, &mut parsed, &mut reads_pipe, false);
                 i += 1;
             }
             '&' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 end_segment(&mut words, &mut parsed, &mut reads_pipe, false);
                 i += if bytes.get(i + 1) == Some(&'&') { 2 } else { 1 };
             }
             '>' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 pending_redirect = Some(());
                 i += if bytes.get(i + 1) == Some(&'>') { 2 } else { 1 };
             }
             '<' => {
-                push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+                push_word(
+                    &mut current,
+                    &mut has_current,
+                    &mut words,
+                    &mut parsed,
+                    &mut pending_redirect,
+                );
                 i += 1;
             }
             _ => {
@@ -321,7 +364,13 @@ fn parse(input: &str) -> Parsed {
             }
         }
     }
-    push_word(&mut current, &mut has_current, &mut words, &mut parsed, &mut pending_redirect);
+    push_word(
+        &mut current,
+        &mut has_current,
+        &mut words,
+        &mut parsed,
+        &mut pending_redirect,
+    );
     end_segment(&mut words, &mut parsed, &mut reads_pipe, false);
 
     parsed
@@ -332,8 +381,7 @@ fn build_segment(raw: Vec<String>, reads_pipe: bool) -> Segment {
     let mut words = raw;
     let mut elevated_via = None;
 
-    loop {
-        let Some(first) = words.first().cloned() else { break };
+    while let Some(first) = words.first().cloned() {
         // `VAR=value cmd ...`
         if let Some(eq) = first.find('=') {
             if eq > 0
@@ -369,7 +417,10 @@ fn build_segment(raw: Vec<String>, reads_pipe: bool) -> Segment {
             }
             "env" => {
                 words.remove(0);
-                while words.first().is_some_and(|w| w.contains('=') || w.starts_with('-')) {
+                while words
+                    .first()
+                    .is_some_and(|w| w.contains('=') || w.starts_with('-'))
+                {
                     words.remove(0);
                 }
             }
@@ -410,14 +461,87 @@ impl Default for Verdict {
 
 /// Programs that only read state.
 const READ_ONLY: &[&str] = &[
-    "cat", "head", "tail", "less", "more", "ls", "stat", "file", "du", "df", "free", "uptime",
-    "uname", "hostname", "hostnamectl", "id", "whoami", "who", "w", "last", "lastlog", "ps",
-    "pgrep", "top", "htop", "vmstat", "iostat", "mpstat", "pidstat", "lsof", "ss", "netstat",
-    "arp", "dig", "nslookup", "host", "ping", "traceroute", "mtr", "getent", "lscpu", "lsblk",
-    "lsmod", "lspci", "lsusb", "dmesg", "journalctl", "date", "wc", "grep", "egrep", "fgrep",
-    "awk", "cut", "sort", "uniq", "tr", "tee", "xargs", "echo", "printf", "basename", "dirname",
-    "readlink", "realpath", "sha256sum", "md5sum", "nproc", "findmnt", "blkid", "mount",
-    "sysctl", "ip", "true", "false", "test", "sleep", "env", "printenv", "which", "type",
+    "cat",
+    "head",
+    "tail",
+    "less",
+    "more",
+    "ls",
+    "stat",
+    "file",
+    "du",
+    "df",
+    "free",
+    "uptime",
+    "uname",
+    "hostname",
+    "hostnamectl",
+    "id",
+    "whoami",
+    "who",
+    "w",
+    "last",
+    "lastlog",
+    "ps",
+    "pgrep",
+    "top",
+    "htop",
+    "vmstat",
+    "iostat",
+    "mpstat",
+    "pidstat",
+    "lsof",
+    "ss",
+    "netstat",
+    "arp",
+    "dig",
+    "nslookup",
+    "host",
+    "ping",
+    "traceroute",
+    "mtr",
+    "getent",
+    "lscpu",
+    "lsblk",
+    "lsmod",
+    "lspci",
+    "lsusb",
+    "dmesg",
+    "journalctl",
+    "date",
+    "wc",
+    "grep",
+    "egrep",
+    "fgrep",
+    "awk",
+    "cut",
+    "sort",
+    "uniq",
+    "tr",
+    "tee",
+    "xargs",
+    "echo",
+    "printf",
+    "basename",
+    "dirname",
+    "readlink",
+    "realpath",
+    "sha256sum",
+    "md5sum",
+    "nproc",
+    "findmnt",
+    "blkid",
+    "mount",
+    "sysctl",
+    "ip",
+    "true",
+    "false",
+    "test",
+    "sleep",
+    "env",
+    "printenv",
+    "which",
+    "type",
 ];
 
 fn classify_segment(seg: &Segment) -> Verdict {
@@ -428,14 +552,16 @@ fn classify_segment(seg: &Segment) -> Verdict {
     };
 
     if let Some(via) = &seg.elevated_via {
-        v.reasons
-            .push(format!("runs `{program}` with elevated privileges via {via}"));
+        v.reasons.push(format!(
+            "runs `{program}` with elevated privileges via {via}"
+        ));
     }
 
     match program {
         // ------------------------------------------------ destructive
         "rm" => {
-            let recursive = seg.has_short_flag('r') || seg.has_short_flag('R') || seg.has_flag("--recursive");
+            let recursive =
+                seg.has_short_flag('r') || seg.has_short_flag('R') || seg.has_flag("--recursive");
             let forced = seg.has_short_flag('f') || seg.has_flag("--force");
             let targets: Vec<&str> = seg
                 .args()
@@ -454,8 +580,9 @@ fn classify_segment(seg: &Segment) -> Verdict {
                 RiskTier::Medium
             };
             if forced {
-                v.reasons
-                    .push("`-f` suppresses the prompts that would otherwise stop a mistaken path".into());
+                v.reasons.push(
+                    "`-f` suppresses the prompts that would otherwise stop a mistaken path".into(),
+                );
             }
             v.reasons.push(if recursive {
                 "deletes files recursively".into()
@@ -465,18 +592,21 @@ fn classify_segment(seg: &Segment) -> Verdict {
             if hits_protected {
                 v.reasons
                     .push("targets a system-managed path that the host needs to function".into());
-                v.impact.push("can render the host unbootable or unreachable".into());
+                v.impact
+                    .push("can render the host unbootable or unreachable".into());
             }
             if wildcard {
                 v.reasons.push(
                     "expands a wildcard on the remote host, so the exact set of files cannot be shown here".into(),
                 );
             }
-            v.impact.push("deleted files are not recoverable from KyvonOPS".into());
+            v.impact
+                .push("deleted files are not recoverable from KyvonOPS".into());
         }
         "shred" | "wipefs" => {
             v.tier = RiskTier::Critical;
-            v.reasons.push(format!("`{program}` irreversibly destroys data"));
+            v.reasons
+                .push(format!("`{program}` irreversibly destroys data"));
             v.impact.push("data cannot be recovered".into());
         }
         "dd" => {
@@ -484,22 +614,32 @@ fn classify_segment(seg: &Segment) -> Verdict {
                 .args()
                 .iter()
                 .any(|a| a.starts_with("of=/dev/") && a != "of=/dev/null");
-            v.tier = if writes_device { RiskTier::Critical } else { RiskTier::High };
+            v.tier = if writes_device {
+                RiskTier::Critical
+            } else {
+                RiskTier::High
+            };
             v.reasons.push("writes raw blocks".into());
             if writes_device {
-                v.impact.push("overwrites a block device and every filesystem on it".into());
+                v.impact
+                    .push("overwrites a block device and every filesystem on it".into());
             }
         }
         p if p.starts_with("mkfs") => {
             v.tier = RiskTier::Critical;
-            v.reasons.push("creates a new filesystem, discarding the existing one".into());
-            v.impact.push("all data on the target device is lost".into());
+            v.reasons
+                .push("creates a new filesystem, discarding the existing one".into());
+            v.impact
+                .push("all data on the target device is lost".into());
         }
         "reboot" | "shutdown" | "poweroff" | "halt" | "init" => {
             v.tier = RiskTier::Critical;
-            v.reasons.push("changes the running state of the whole machine".into());
-            v.impact
-                .push("the host and every service on it go offline; SSH access is lost until it returns".into());
+            v.reasons
+                .push("changes the running state of the whole machine".into());
+            v.impact.push(
+                "the host and every service on it go offline; SSH access is lost until it returns"
+                    .into(),
+            );
         }
 
         // ---------------------------------------------------- systemd
@@ -511,7 +651,9 @@ fn classify_segment(seg: &Segment) -> Verdict {
                 "restart" | "stop" | "start" | "reload" => {
                     v.tier = RiskTier::Medium;
                     v.reasons.push(format!("{action}s a system service"));
-                    v.impact.push("requests in flight may fail while the service is unavailable".into());
+                    v.impact.push(
+                        "requests in flight may fail while the service is unavailable".into(),
+                    );
                 }
                 _ => {
                     v.tier = RiskTier::Medium;
@@ -523,25 +665,33 @@ fn classify_segment(seg: &Segment) -> Verdict {
             // `--vacuum-*` deletes journal history.
             if seg.args().iter().any(|a| a.starts_with("--vacuum")) {
                 v.tier = RiskTier::High;
-                v.reasons.push("permanently discards journal history".into());
-                v.impact.push("past log evidence for incidents is lost".into());
+                v.reasons
+                    .push("permanently discards journal history".into());
+                v.impact
+                    .push("past log evidence for incidents is lost".into());
             }
         }
 
         // ------------------------------------------------- processes
         "kill" | "pkill" | "killall" => {
             let sigkill = seg.has_flag("-9") || seg.has_flag("-KILL") || seg.has_flag("-SIGKILL");
-            v.tier = if sigkill { RiskTier::High } else { RiskTier::Medium };
+            v.tier = if sigkill {
+                RiskTier::High
+            } else {
+                RiskTier::Medium
+            };
             v.reasons.push(if sigkill {
                 "terminates a process immediately with SIGKILL, giving it no chance to shut down cleanly".into()
             } else {
                 "signals a running process to terminate".into()
             });
             if sigkill {
-                v.impact.push("in-flight work and unflushed data are lost".into());
+                v.impact
+                    .push("in-flight work and unflushed data are lost".into());
             }
             if program != "kill" {
-                v.reasons.push("matches processes by name, so it may signal more than one".into());
+                v.reasons
+                    .push("matches processes by name, so it may signal more than one".into());
             }
         }
 
@@ -554,8 +704,11 @@ fn classify_segment(seg: &Segment) -> Verdict {
         "ufw" => classify_ufw(seg, &mut v),
         "iptables" | "ip6tables" | "nft" | "firewall-cmd" => {
             let flushes = seg.has_flag("-F") || seg.has_flag("--flush") || seg.has_flag("flush");
-            let lists = seg.has_flag("-L") || seg.has_flag("--list") || seg.has_flag("list")
-                || seg.has_flag("-S") || seg.has_flag("--list-all");
+            let lists = seg.has_flag("-L")
+                || seg.has_flag("--list")
+                || seg.has_flag("list")
+                || seg.has_flag("-S")
+                || seg.has_flag("--list-all");
             if flushes {
                 v.tier = RiskTier::Critical;
                 v.reasons.push("removes every firewall rule at once".into());
@@ -567,51 +720,68 @@ fn classify_segment(seg: &Segment) -> Verdict {
             } else {
                 v.tier = RiskTier::High;
                 v.reasons.push("changes packet filtering rules".into());
-                v.impact.push("a mistake here can lock out SSH; you would need console access".into());
+                v.impact
+                    .push("a mistake here can lock out SSH; you would need console access".into());
             }
         }
 
         // ------------------------------------------------------ ssh
         "sshd" | "ssh-keygen" => {
             v.tier = RiskTier::High;
-            v.reasons.push("changes SSH host or key configuration".into());
+            v.reasons
+                .push("changes SSH host or key configuration".into());
             v.impact.push("can prevent future SSH logins".into());
         }
 
         // ---------------------------------------------------- users
         "useradd" | "usermod" | "groupadd" | "groupmod" | "passwd" | "chpasswd" | "adduser" => {
             v.tier = RiskTier::High;
-            v.reasons.push("changes system accounts or credentials".into());
-            v.impact.push("affects who can log in and with what privileges".into());
+            v.reasons
+                .push("changes system accounts or credentials".into());
+            v.impact
+                .push("affects who can log in and with what privileges".into());
         }
         "userdel" | "groupdel" | "deluser" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("removes a system account".into());
-            v.impact.push("processes owned by the account and its home directory may be lost".into());
+            v.impact
+                .push("processes owned by the account and its home directory may be lost".into());
         }
         "visudo" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("edits sudo authorisation".into());
-            v.impact.push("a syntax error here can remove all privilege escalation on the host".into());
+            v.impact
+                .push("a syntax error here can remove all privilege escalation on the host".into());
         }
 
         // ------------------------------------------------ permissions
         "chmod" | "chown" | "chgrp" | "setfacl" => {
             let recursive = seg.has_short_flag('R') || seg.has_flag("--recursive");
-            let world_writable = seg.args().iter().any(|a| a.ends_with("777") || a.ends_with("666"));
-            let targets: Vec<&str> = seg.args().iter().filter(|a| !a.starts_with('-')).map(|s| s.as_str()).collect();
+            let world_writable = seg
+                .args()
+                .iter()
+                .any(|a| a.ends_with("777") || a.ends_with("666"));
+            let targets: Vec<&str> = seg
+                .args()
+                .iter()
+                .filter(|a| !a.starts_with('-'))
+                .map(|s| s.as_str())
+                .collect();
             let protected = targets.iter().any(|t| is_protected_from_deletion(t));
             v.tier = if protected || (recursive && world_writable) {
                 RiskTier::Critical
             } else {
                 RiskTier::High
             };
-            v.reasons.push("changes file ownership or permissions".into());
+            v.reasons
+                .push("changes file ownership or permissions".into());
             if world_writable {
-                v.reasons.push("grants write access to every user on the host".into());
+                v.reasons
+                    .push("grants write access to every user on the host".into());
             }
             if protected {
-                v.impact.push("altering permissions on system paths can break login or boot".into());
+                v.impact
+                    .push("altering permissions on system paths can break login or boot".into());
             }
         }
 
@@ -623,43 +793,67 @@ fn classify_segment(seg: &Segment) -> Verdict {
             if seg.has_short_flag('i') || seg.args().iter().any(|a| a.starts_with("--in-place")) {
                 v.tier = RiskTier::High;
                 v.reasons.push("edits files in place".into());
-                v.impact.push("the original content is replaced without a backup unless one was requested".into());
+                v.impact.push(
+                    "the original content is replaced without a backup unless one was requested"
+                        .into(),
+                );
             }
         }
         "truncate" => {
             v.tier = RiskTier::Medium;
-            v.reasons.push("changes a file's length, discarding content beyond it".into());
+            v.reasons
+                .push("changes a file's length, discarding content beyond it".into());
         }
         "tee" if !seg.args().is_empty() => {
             v.tier = RiskTier::Medium;
             v.reasons.push("writes its input to a file".into());
         }
         "mv" | "cp" | "ln" | "mkdir" | "touch" => {
-            let targets: Vec<&str> = seg.args().iter().filter(|a| !a.starts_with('-')).map(|s| s.as_str()).collect();
+            let targets: Vec<&str> = seg
+                .args()
+                .iter()
+                .filter(|a| !a.starts_with('-'))
+                .map(|s| s.as_str())
+                .collect();
             let protected = targets.iter().any(|t| is_protected_from_deletion(t));
-            v.tier = if protected { RiskTier::High } else { RiskTier::Low };
+            v.tier = if protected {
+                RiskTier::High
+            } else {
+                RiskTier::Low
+            };
             v.reasons.push("creates or moves files".into());
             if protected {
-                v.reasons.push("one of the targets is a system-managed path".into());
+                v.reasons
+                    .push("one of the targets is a system-managed path".into());
             }
         }
         "eval" | "source" | "." => {
             v.tier = RiskTier::High;
-            v.reasons.push("executes text as code, so its effect cannot be read from the command".into());
+            v.reasons.push(
+                "executes text as code, so its effect cannot be read from the command".into(),
+            );
             v.unknown.push(format!("`{program}`"));
         }
         "crontab" | "at" => {
             v.tier = RiskTier::High;
-            v.reasons.push("schedules commands to run later, outside this session".into());
+            v.reasons
+                .push("schedules commands to run later, outside this session".into());
         }
         "nginx" | "apache2ctl" | "apachectl" | "httpd" => {
             if seg.has_flag("-t") || seg.has_flag("configtest") {
                 v.tier = RiskTier::Safe;
-                v.reasons.push("validates configuration without applying it".into());
-            } else if seg.has_flag("-s") || seg.subcommand().is_some_and(|s| s.contains("restart") || s.contains("reload")) {
+                v.reasons
+                    .push("validates configuration without applying it".into());
+            } else if seg.has_flag("-s")
+                || seg
+                    .subcommand()
+                    .is_some_and(|s| s.contains("restart") || s.contains("reload"))
+            {
                 v.tier = RiskTier::Medium;
-                v.reasons.push("signals the web server to reload or restart".into());
-                v.impact.push("connections may be reset during the reload".into());
+                v.reasons
+                    .push("signals the web server to reload or restart".into());
+                v.impact
+                    .push("connections may be reset during the reload".into());
             } else {
                 v.tier = RiskTier::Medium;
                 v.unknown.push(format!("`{program}` invocation"));
@@ -668,16 +862,20 @@ fn classify_segment(seg: &Segment) -> Verdict {
         "git" => {
             let sub = seg.subcommand().unwrap_or("");
             v.tier = match sub {
-                "status" | "log" | "diff" | "show" | "branch" | "remote" | "rev-parse" => RiskTier::Safe,
+                "status" | "log" | "diff" | "show" | "branch" | "remote" | "rev-parse" => {
+                    RiskTier::Safe
+                }
                 "pull" | "fetch" | "checkout" | "switch" => RiskTier::Medium,
                 "reset" | "clean" | "push" => RiskTier::High,
                 _ => RiskTier::Low,
             };
             if v.tier >= RiskTier::Medium {
-                v.reasons.push(format!("`git {sub}` changes the working tree or a remote"));
+                v.reasons
+                    .push(format!("`git {sub}` changes the working tree or a remote"));
             }
             if sub == "reset" || sub == "clean" {
-                v.impact.push("uncommitted local changes on the server are discarded".into());
+                v.impact
+                    .push("uncommitted local changes on the server are discarded".into());
             }
         }
 
@@ -689,7 +887,8 @@ fn classify_segment(seg: &Segment) -> Verdict {
         // ------------------------------------------------- unknown
         other => {
             v.tier = RiskTier::Medium;
-            v.unknown.push(format!("`{other}`, which KyvonOPS does not recognise"));
+            v.unknown
+                .push(format!("`{other}`, which KyvonOPS does not recognise"));
             v.reasons.push(format!(
                 "`{other}` is not in the classifier's table, so its effect is treated as unknown rather than assumed safe"
             ));
@@ -719,41 +918,53 @@ fn classify_systemctl(seg: &Segment, v: &mut Verdict) {
         }
         "reload" => {
             v.tier = RiskTier::Medium;
-            v.reasons.push(format!("reloads configuration for {unit_list}"));
-            v.impact.push("a configuration error can leave the service in a failed state".into());
+            v.reasons
+                .push(format!("reloads configuration for {unit_list}"));
+            v.impact
+                .push("a configuration error can leave the service in a failed state".into());
         }
         "restart" | "try-restart" | "reload-or-restart" => {
             v.tier = RiskTier::Medium;
             v.reasons.push(format!("restarts {unit_list}"));
-            v.impact.push("brief service interruption; in-flight requests may fail".into());
+            v.impact
+                .push("brief service interruption; in-flight requests may fail".into());
         }
         "stop" => {
             v.tier = RiskTier::High;
-            v.reasons.push(format!("stops {unit_list} and leaves it stopped"));
-            v.impact.push("the service stays down until it is started again".into());
+            v.reasons
+                .push(format!("stops {unit_list} and leaves it stopped"));
+            v.impact
+                .push("the service stays down until it is started again".into());
         }
         "enable" | "disable" | "mask" | "unmask" | "preset" | "set-default" => {
             v.tier = RiskTier::High;
-            v.reasons.push(format!("changes whether {unit_list} starts at boot"));
-            v.impact.push("the effect is only fully visible after the next reboot".into());
+            v.reasons
+                .push(format!("changes whether {unit_list} starts at boot"));
+            v.impact
+                .push("the effect is only fully visible after the next reboot".into());
         }
         "daemon-reload" => {
             v.tier = RiskTier::Low;
-            v.reasons.push("reloads systemd's own unit definitions".into());
+            v.reasons
+                .push("reloads systemd's own unit definitions".into());
         }
         "kill" => {
             v.tier = RiskTier::High;
-            v.reasons.push(format!("sends a signal directly to {unit_list}"));
+            v.reasons
+                .push(format!("sends a signal directly to {unit_list}"));
         }
         "isolate" | "rescue" | "emergency" => {
             v.tier = RiskTier::Critical;
-            v.reasons.push("switches the machine to a different systemd target".into());
-            v.impact.push("most services, possibly including sshd, are stopped".into());
+            v.reasons
+                .push("switches the machine to a different systemd target".into());
+            v.impact
+                .push("most services, possibly including sshd, are stopped".into());
         }
         "reboot" | "poweroff" | "halt" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("shuts down or restarts the machine".into());
-            v.impact.push("the host goes offline; SSH access is lost until it returns".into());
+            v.impact
+                .push("the host goes offline; SSH access is lost until it returns".into());
         }
         other => {
             v.tier = RiskTier::Medium;
@@ -763,9 +974,12 @@ fn classify_systemctl(seg: &Segment, v: &mut Verdict) {
 
     // Restarting sshd over SSH is a specific, recoverable-but-alarming case
     // worth calling out explicitly.
-    if units.iter().any(|u| u.starts_with("ssh")) && matches!(sub, "restart" | "stop" | "disable" | "mask") {
+    if units.iter().any(|u| u.starts_with("ssh"))
+        && matches!(sub, "restart" | "stop" | "disable" | "mask")
+    {
         v.tier = v.tier.max(RiskTier::Critical);
-        v.reasons.push("targets the SSH service that KyvonOPS itself connects through".into());
+        v.reasons
+            .push("targets the SSH service that KyvonOPS itself connects through".into());
         v.impact.push(
             "if the new configuration is invalid you will not be able to reconnect without console access".into(),
         );
@@ -780,23 +994,30 @@ fn classify_package_manager(program: &str, seg: &Segment, v: &mut Verdict) {
         "update" if program == "apt" || program == "apt-get" => {
             // On apt, `update` only refreshes indexes.
             v.tier = RiskTier::Low;
-            v.reasons.push("refreshes the package index without changing installed packages".into());
+            v.reasons
+                .push("refreshes the package index without changing installed packages".into());
         }
         "install" | "add" | "-S" => {
             v.tier = RiskTier::High;
-            v.reasons.push("installs packages, which may pull in dependencies and restart services".into());
-            v.impact.push("post-install scripts can restart running services".into());
+            v.reasons.push(
+                "installs packages, which may pull in dependencies and restart services".into(),
+            );
+            v.impact
+                .push("post-install scripts can restart running services".into());
         }
         "upgrade" | "dist-upgrade" | "full-upgrade" | "update" | "-Syu" => {
             v.tier = RiskTier::High;
             v.reasons.push("upgrades installed packages".into());
-            v.impact.push("services are restarted as their packages are replaced".into());
-            v.impact.push("a kernel upgrade takes effect only after a reboot".into());
+            v.impact
+                .push("services are restarted as their packages are replaced".into());
+            v.impact
+                .push("a kernel upgrade takes effect only after a reboot".into());
         }
         "remove" | "purge" | "erase" | "del" | "-R" | "-Rs" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("removes installed packages".into());
-            v.impact.push("dependency resolution may remove more than the named package".into());
+            v.impact
+                .push("dependency resolution may remove more than the named package".into());
         }
         "autoremove" | "autoclean" | "clean" => {
             v.tier = RiskTier::Medium;
@@ -815,17 +1036,23 @@ fn classify_ufw(seg: &Segment, v: &mut Verdict) {
         "disable" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("disables the host firewall entirely".into());
-            v.impact.push("every listening port becomes reachable from anywhere the network allows".into());
+            v.impact.push(
+                "every listening port becomes reachable from anywhere the network allows".into(),
+            );
         }
         "reset" => {
             v.tier = RiskTier::Critical;
-            v.reasons.push("deletes all firewall rules and returns ufw to its defaults".into());
-            v.impact.push("existing SSH access may be dropped by the default policy".into());
+            v.reasons
+                .push("deletes all firewall rules and returns ufw to its defaults".into());
+            v.impact
+                .push("existing SSH access may be dropped by the default policy".into());
         }
         "enable" | "allow" | "deny" | "reject" | "delete" | "limit" | "default" => {
             v.tier = RiskTier::High;
             v.reasons.push("changes firewall rules".into());
-            v.impact.push("a mistake can lock out SSH; you would need console access to recover".into());
+            v.impact.push(
+                "a mistake can lock out SSH; you would need console access to recover".into(),
+            );
         }
         other => {
             v.tier = RiskTier::High;
@@ -846,28 +1073,38 @@ fn classify_docker(seg: &Segment, v: &mut Verdict) {
         "restart" | "stop" | "pause" | "unpause" | "kill" => {
             v.tier = RiskTier::Medium;
             v.reasons.push(format!("{sub}s a running container"));
-            v.impact.push("traffic served by the container fails until it is running again".into());
+            v.impact
+                .push("traffic served by the container fails until it is running again".into());
         }
         "rm" | "rmi" => {
             v.tier = RiskTier::High;
             v.reasons.push("removes containers or images".into());
-            v.impact.push("anonymous volumes attached to a removed container may be lost".into());
+            v.impact
+                .push("anonymous volumes attached to a removed container may be lost".into());
         }
         "prune" | "system" => {
             v.tier = RiskTier::Critical;
             v.reasons.push("bulk-deletes unused Docker objects".into());
-            v.impact.push("stopped containers, unused images and dangling volumes are deleted".into());
+            v.impact
+                .push("stopped containers, unused images and dangling volumes are deleted".into());
         }
         "exec" | "run" => {
             v.tier = RiskTier::High;
-            v.reasons.push("executes a command inside a container".into());
-            v.unknown.push("the command run inside the container".into());
+            v.reasons
+                .push("executes a command inside a container".into());
+            v.unknown
+                .push("the command run inside the container".into());
         }
         "volume" => {
             let op = seg.operands().first().copied().unwrap_or("");
-            v.tier = if matches!(op, "ls" | "inspect") { RiskTier::Safe } else { RiskTier::Critical };
+            v.tier = if matches!(op, "ls" | "inspect") {
+                RiskTier::Safe
+            } else {
+                RiskTier::Critical
+            };
             if v.tier == RiskTier::Critical {
-                v.reasons.push("changes Docker volumes, which hold persistent data".into());
+                v.reasons
+                    .push("changes Docker volumes, which hold persistent data".into());
             }
         }
         "compose" => {
@@ -879,7 +1116,8 @@ fn classify_docker(seg: &Segment, v: &mut Verdict) {
                 _ => RiskTier::Medium,
             };
             if op == "down" {
-                v.reasons.push("stops and removes the whole compose stack".into());
+                v.reasons
+                    .push("stops and removes the whole compose stack".into());
             }
         }
         other => {
@@ -935,7 +1173,10 @@ mod tests {
     fn curl_piped_into_shell_is_critical() {
         let a = classify("curl -fsSL https://example.com/install.sh | sh");
         assert_eq!(a.tier, RiskTier::Critical);
-        assert!(a.reasons.iter().any(|r| r.contains("pipes downloaded content")));
+        assert!(a
+            .reasons
+            .iter()
+            .any(|r| r.contains("pipes downloaded content")));
     }
 
     #[test]
@@ -980,7 +1221,10 @@ mod tests {
     #[test]
     fn sudo_wrapper_is_seen_through() {
         assert_eq!(tier("sudo systemctl restart nginx"), RiskTier::Medium);
-        assert_eq!(tier("sudo -u postgres psql -c 'select 1'"), RiskTier::Medium);
+        assert_eq!(
+            tier("sudo -u postgres psql -c 'select 1'"),
+            RiskTier::Medium
+        );
         let a = classify("sudo systemctl restart nginx");
         assert!(a.reasons.iter().any(|r| r.contains("elevated privileges")));
     }

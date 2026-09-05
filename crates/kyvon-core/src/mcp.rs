@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::risk::RiskTier;
 use crate::TimestampMs;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -13,7 +13,10 @@ pub enum McpRole {
 
 impl McpRole {
     pub fn can_write(&self) -> bool {
-        matches!(self, McpRole::Developer | McpRole::Operator | McpRole::Administrator)
+        matches!(
+            self,
+            McpRole::Developer | McpRole::Operator | McpRole::Administrator
+        )
     }
 
     pub fn can_deploy_production(&self) -> bool {

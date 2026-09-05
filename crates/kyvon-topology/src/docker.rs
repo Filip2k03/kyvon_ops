@@ -34,7 +34,8 @@ pub fn parse_docker_ps_json(ndjson: &str) -> Vec<DockerContainerInfo> {
 
         // We handle both docker ps standard json and full inspect entries
         if let Ok(val) = serde_json::from_str::<serde_json::Value>(trimmed) {
-            let id = val.get("ID")
+            let id = val
+                .get("ID")
                 .or_else(|| val.get("Id"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
@@ -46,17 +47,38 @@ pub fn parse_docker_ps_json(ndjson: &str) -> Vec<DockerContainerInfo> {
 
             let names_str = val.get("Names").and_then(|v| v.as_str()).unwrap_or("");
             let names: Vec<String> = if !names_str.is_empty() {
-                names_str.split(',').map(|s| s.trim().trim_start_matches('/').to_string()).collect()
+                names_str
+                    .split(',')
+                    .map(|s| s.trim().trim_start_matches('/').to_string())
+                    .collect()
             } else if let Some(arr) = val.get("Names").and_then(|v| v.as_array()) {
-                arr.iter().filter_map(|v| v.as_str().map(|s| s.trim_start_matches('/').to_string())).collect()
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.trim_start_matches('/').to_string()))
+                    .collect()
             } else {
                 vec![]
             };
 
-            let image = val.get("Image").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let command = val.get("Command").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let state = val.get("State").and_then(|v| v.as_str()).unwrap_or("running").to_string();
-            let status = val.get("Status").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let image = val
+                .get("Image")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let command = val
+                .get("Command")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let state = val
+                .get("State")
+                .and_then(|v| v.as_str())
+                .unwrap_or("running")
+                .to_string();
+            let status = val
+                .get("Status")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
 
             // Labels for Compose
             let labels = val.get("Labels");
@@ -98,10 +120,16 @@ fn parse_ports_field(ports_str: &str) -> Vec<ContainerPortMapping> {
         let p = part.trim();
         // format: 0.0.0.0:8080->80/tcp or 80/tcp
         if let Some((host_side, container_side)) = p.split_once("->") {
-            let (host_ip, host_port_str) = host_side.rsplit_once(':').unwrap_or(("0.0.0.0", host_side));
-            let (container_port_str, proto) = container_side.split_once('/').unwrap_or((container_side, "tcp"));
+            let (host_ip, host_port_str) =
+                host_side.rsplit_once(':').unwrap_or(("0.0.0.0", host_side));
+            let (container_port_str, proto) = container_side
+                .split_once('/')
+                .unwrap_or((container_side, "tcp"));
 
-            if let (Ok(h_port), Ok(c_port)) = (host_port_str.parse::<u16>(), container_port_str.parse::<u16>()) {
+            if let (Ok(h_port), Ok(c_port)) = (
+                host_port_str.parse::<u16>(),
+                container_port_str.parse::<u16>(),
+            ) {
                 mappings.push(ContainerPortMapping {
                     host_ip: host_ip.to_string(),
                     host_port: h_port,

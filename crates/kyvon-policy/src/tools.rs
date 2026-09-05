@@ -14,7 +14,8 @@ impl McpToolDefinition {
     /// schema types fail closed; extend validation before adding new input types.
     pub fn validate_arguments(&self, args: &Value) -> Result<(), &'static str> {
         let args = args.as_object().ok_or("Arguments must be an object.")?;
-        let properties = self.input_schema["properties"].as_object()
+        let properties = self.input_schema["properties"]
+            .as_object()
             .ok_or("Tool schema is unavailable.")?;
         if let Some(required) = self.input_schema["required"].as_array() {
             for name in required {
@@ -28,8 +29,13 @@ impl McpToolDefinition {
             match schema["type"].as_str() {
                 Some("string") => {
                     let value = value.as_str().ok_or("Argument must be a string.")?;
-                    if value.trim().is_empty() || value.len() > 4096 || value.chars().any(char::is_control) {
-                        return Err("String argument is empty, oversized, or contains control characters.");
+                    if value.trim().is_empty()
+                        || value.len() > 4096
+                        || value.chars().any(char::is_control)
+                    {
+                        return Err(
+                            "String argument is empty, oversized, or contains control characters.",
+                        );
                     }
                 }
                 Some("integer") => {
@@ -290,9 +296,19 @@ mod tests {
         let tools = get_kyvon_mcp_tools();
         let tool = tools.iter().find(|t| t.name == "kyvon_site_logs").unwrap();
         for lines in [json!(0), json!(-1), json!(1001), json!(1.5), json!("50")] {
-            assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "lines": lines})).is_err());
+            assert!(tool
+                .validate_arguments(
+                    &json!({"server_id": "s", "domain": "example.com", "lines": lines})
+                )
+                .is_err());
         }
-        assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "lines": 1000})).is_ok());
-        assert!(tool.validate_arguments(&json!({"server_id": "s", "domain": "example.com", "command": "id"})).is_err());
+        assert!(tool
+            .validate_arguments(&json!({"server_id": "s", "domain": "example.com", "lines": 1000}))
+            .is_ok());
+        assert!(tool
+            .validate_arguments(
+                &json!({"server_id": "s", "domain": "example.com", "command": "id"})
+            )
+            .is_err());
     }
 }

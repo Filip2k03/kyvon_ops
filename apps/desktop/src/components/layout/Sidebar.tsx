@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
   Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download,
-  Monitor, QrCode
+  Monitor, QrCode, Briefcase
 } from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
@@ -10,6 +10,7 @@ import clsx from 'clsx';
 const navItems = [
   { path: '/command-center', icon: Activity, label: 'Command Center' },
   { path: '/servers', icon: Server, label: 'Servers' },
+  { path: '/clients', icon: Briefcase, label: 'Client Workspaces' },
   { path: '/vps-matrix', icon: Monitor, label: 'VPS Health Matrix' },
   { path: '/pairing', icon: QrCode, label: 'QR Device Pairing & 2FA' },
   { path: '/cloudflare', icon: Globe, label: 'Cloudflare & Ingress' },

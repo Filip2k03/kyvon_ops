@@ -20,6 +20,7 @@ import { MobileBuilder } from './features/mobile/MobileBuilder';
 import { DownloadPortal } from './features/downloads/DownloadPortal';
 import { VpsHealthMatrix } from './features/servers/VpsHealthMatrix';
 import { DevicePairingCenter } from './features/security/DevicePairingCenter';
+import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManager';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/servers" element={<ServerList />} />
         <Route path="/servers/:id" element={<ServerDetail />} />
+        <Route path="/clients" element={<ClientWorkspaceManager />} />
         <Route path="/vps-matrix" element={<VpsHealthMatrix />} />
         <Route path="/pairing" element={<DevicePairingCenter />} />
         <Route path="/cloudflare" element={<CloudflareManager />} />

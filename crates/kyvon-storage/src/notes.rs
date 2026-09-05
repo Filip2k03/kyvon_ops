@@ -66,7 +66,11 @@ impl NoteRepo {
         .bind(&note.section)
         .bind(&note.title)
         .bind(&note.body_md)
-        .bind(if note.created_at > 0 { note.created_at } else { now })
+        .bind(if note.created_at > 0 {
+            note.created_at
+        } else {
+            now
+        })
         .bind(now)
         .execute(self.db.pool())
         .await
@@ -149,7 +153,9 @@ mod tests {
     #[tokio::test]
     async fn stores_and_lists_notes() {
         let r = setup().await;
-        r.upsert(&note("n1", "deployment", "How we deploy")).await.unwrap();
+        r.upsert(&note("n1", "deployment", "How we deploy"))
+            .await
+            .unwrap();
         let got = r.list("s1").await.unwrap();
         assert_eq!(got.len(), 1);
         assert!(got[0].body_md.contains("do the thing"));
@@ -203,7 +209,10 @@ mod tests {
             .await
             .unwrap();
         let notes = NoteRepo::new(db);
-        notes.upsert(&note("n1", "backup", "Backups")).await.unwrap();
+        notes
+            .upsert(&note("n1", "backup", "Backups"))
+            .await
+            .unwrap();
         servers.delete("s1").await.unwrap();
         assert!(notes.list("s1").await.unwrap().is_empty());
     }

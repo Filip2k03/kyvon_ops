@@ -7,8 +7,9 @@ use kyvon_core::{KyvonError, Result};
 /// reopened. The empty string still needs quoting or it disappears entirely.
 pub fn quote(s: &str) -> String {
     if !s.is_empty()
-        && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'/' | b':' | b'@' | b','))
+        && s.bytes().all(|b| {
+            b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'/' | b':' | b'@' | b',')
+        })
     {
         return s.to_string();
     }
@@ -43,9 +44,9 @@ impl Cmd {
     /// absolute path — never operator-supplied text.
     pub fn new(program: &str) -> Result<Self> {
         let valid = !program.is_empty()
-            && program.bytes().all(|b| {
-                b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'/')
-            })
+            && program
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'/'))
             && !program.contains("..");
         if !valid {
             return Err(KyvonError::Invalid(format!(
@@ -185,7 +186,11 @@ mod tests {
 
     #[test]
     fn sudo_is_non_interactive() {
-        let c = Cmd::new("systemctl").unwrap().arg("restart").arg("nginx").sudo();
+        let c = Cmd::new("systemctl")
+            .unwrap()
+            .arg("restart")
+            .arg("nginx")
+            .sudo();
         assert_eq!(c.render(), "sudo -n systemctl restart nginx");
     }
 }

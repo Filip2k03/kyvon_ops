@@ -101,7 +101,12 @@ pub fn diff(before: &SnapshotDocument, after: &SnapshotDocument) -> Vec<Change> 
     let services = |d: &SnapshotDocument| -> BTreeMap<String, String> {
         d.services
             .iter()
-            .map(|s| (s.unit.clone(), format!("{} ({})", s.active_state, s.sub_state)))
+            .map(|s| {
+                (
+                    s.unit.clone(),
+                    format!("{} ({})", s.active_state, s.sub_state),
+                )
+            })
             .collect()
     };
     let ports = |d: &SnapshotDocument| -> BTreeMap<String, String> {
@@ -112,7 +117,9 @@ pub fn diff(before: &SnapshotDocument, after: &SnapshotDocument) -> Vec<Change> 
                     format!("{}/{}", p.port, p.protocol),
                     format!(
                         "{} on {}",
-                        p.process.clone().unwrap_or_else(|| "unknown process".into()),
+                        p.process
+                            .clone()
+                            .unwrap_or_else(|| "unknown process".into()),
                         p.address
                     ),
                 )
@@ -132,7 +139,11 @@ pub fn diff(before: &SnapshotDocument, after: &SnapshotDocument) -> Vec<Change> 
     compare("service", services(before), services(after));
     compare("port", ports(before), ports(after));
     compare("package", list(&before.packages), list(&after.packages));
-    compare("container", list(&before.containers), list(&after.containers));
+    compare(
+        "container",
+        list(&before.containers),
+        list(&after.containers),
+    );
     compare("user", list(&before.users), list(&after.users));
 
     if before.kernel != after.kernel && !before.kernel.is_empty() {
@@ -174,13 +185,12 @@ impl SnapshotRepo {
     }
 
     pub async fn list(&self, server_id: &str) -> Result<Vec<Snapshot>> {
-        let rows = sqlx::query(
-            "SELECT * FROM snapshots WHERE server_id = ?1 ORDER BY created_at DESC",
-        )
-        .bind(server_id)
-        .fetch_all(self.db.pool())
-        .await
-        .map_err(storage_err)?;
+        let rows =
+            sqlx::query("SELECT * FROM snapshots WHERE server_id = ?1 ORDER BY created_at DESC")
+                .bind(server_id)
+                .fetch_all(self.db.pool())
+                .await
+                .map_err(storage_err)?;
         rows.into_iter().map(row_to_snapshot).collect()
     }
 

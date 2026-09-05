@@ -132,11 +132,7 @@ impl MetricRepo {
     ///
     /// Idempotent: re-running over the same window recomputes the same
     /// buckets rather than doubling them, so a crash mid-rollup is harmless.
-    pub async fn roll_up(
-        &self,
-        resolution: Resolution,
-        before: TimestampMs,
-    ) -> Result<u64> {
+    pub async fn roll_up(&self, resolution: Resolution, before: TimestampMs) -> Result<u64> {
         let width = resolution.bucket_ms();
         if width <= 0 {
             return Ok(0);
@@ -305,8 +301,12 @@ mod tests {
     #[tokio::test]
     async fn a_repeated_timestamp_updates_rather_than_failing_the_batch() {
         let (r, _db) = repo_with_server().await;
-        r.insert_samples("s1", &[("cpu.total".into(), T0, 10.0)]).await.unwrap();
-        r.insert_samples("s1", &[("cpu.total".into(), T0, 20.0)]).await.unwrap();
+        r.insert_samples("s1", &[("cpu.total".into(), T0, 10.0)])
+            .await
+            .unwrap();
+        r.insert_samples("s1", &[("cpu.total".into(), T0, 20.0)])
+            .await
+            .unwrap();
         let series = r.series("s1", "cpu.total", T0, T0 + 1000).await.unwrap();
         assert_eq!(series.len(), 1);
         assert_eq!(series[0].value, 20.0);
@@ -326,7 +326,9 @@ mod tests {
         samples[30].2 = 95.0; // a spike inside the first bucket
         r.insert_samples("s1", &samples).await.unwrap();
 
-        r.roll_up(Resolution::OneMinute, T0 + 200_000).await.unwrap();
+        r.roll_up(Resolution::OneMinute, T0 + 200_000)
+            .await
+            .unwrap();
 
         let first = r
             .aggregate("s1", "cpu.total", Resolution::OneMinute, T0)
@@ -354,8 +356,12 @@ mod tests {
             .collect();
         r.insert_samples("s1", &samples).await.unwrap();
 
-        r.roll_up(Resolution::OneMinute, T0 + 100_000).await.unwrap();
-        r.roll_up(Resolution::OneMinute, T0 + 100_000).await.unwrap();
+        r.roll_up(Resolution::OneMinute, T0 + 100_000)
+            .await
+            .unwrap();
+        r.roll_up(Resolution::OneMinute, T0 + 100_000)
+            .await
+            .unwrap();
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM metric_aggregates")
             .fetch_one(db.pool())
@@ -391,8 +397,8 @@ mod tests {
         r.insert_samples(
             "s1",
             &[
-                ("cpu.total".into(), T0, 1.0),                       // 48h old
-                ("cpu.total".into(), now - 3_600_000, 2.0),          // 1h old
+                ("cpu.total".into(), T0, 1.0),              // 48h old
+                ("cpu.total".into(), now - 3_600_000, 2.0), // 1h old
             ],
         )
         .await
@@ -415,7 +421,9 @@ mod tests {
             .map(|i| ("cpu.total".to_string(), T0 + i * 1000, 50.0))
             .collect();
         r.insert_samples("s1", &samples).await.unwrap();
-        r.roll_up(Resolution::FiveMinute, T0 + 600_000).await.unwrap();
+        r.roll_up(Resolution::FiveMinute, T0 + 600_000)
+            .await
+            .unwrap();
 
         // A 7-day window selects the 5-minute rollup.
         let wide = r

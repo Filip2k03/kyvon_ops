@@ -74,7 +74,9 @@ impl client::Handler for ClientHandler {
             }
         };
         Ok(matches!(
-            self.verifier.verify(&self.host, self.port, &presented).await,
+            self.verifier
+                .verify(&self.host, self.port, &presented)
+                .await,
             Verdict::Trust
         ))
     }
@@ -292,11 +294,7 @@ impl SshSession {
             let _ = tx.send(TerminalItem::Exited(None)).await;
         });
 
-        Ok(TerminalHandle {
-            write,
-            rx,
-            task,
-        })
+        Ok(TerminalHandle { write, rx, task })
     }
 
     /// Open an SFTP subsystem channel over this session.
@@ -325,7 +323,11 @@ impl SshSession {
     pub async fn disconnect(&self) {
         let _ = self
             .handle
-            .disconnect(Disconnect::ByApplication, "kyvonops: closed by operator", "en")
+            .disconnect(
+                Disconnect::ByApplication,
+                "kyvonops: closed by operator",
+                "en",
+            )
             .await;
     }
 }
@@ -460,7 +462,12 @@ async fn authenticate(
             })?;
             // Ask the server which RSA signature hash it accepts rather than
             // defaulting to SHA-1, which modern OpenSSH refuses.
-            let hash_alg = handle.best_supported_rsa_hash().await.ok().flatten().flatten();
+            let hash_alg = handle
+                .best_supported_rsa_hash()
+                .await
+                .ok()
+                .flatten()
+                .flatten();
             handle
                 .authenticate_publickey(
                     &profile.username,
@@ -505,7 +512,12 @@ async fn authenticate_via_agent(
         ));
     }
 
-    let hash_alg = handle.best_supported_rsa_hash().await.ok().flatten().flatten();
+    let hash_alg = handle
+        .best_supported_rsa_hash()
+        .await
+        .ok()
+        .flatten()
+        .flatten();
     for identity in identities {
         let russh::keys::agent::AgentIdentity::PublicKey { key, comment } = &identity else {
             continue;
@@ -595,7 +607,10 @@ mod tests {
             append_capped(&mut buf, &chunk, &mut truncated);
         }
         assert_eq!(buf.len(), MAX_EXEC_OUTPUT);
-        assert!(truncated, "a caller must be able to tell output was dropped");
+        assert!(
+            truncated,
+            "a caller must be able to tell output was dropped"
+        );
     }
 
     #[test]

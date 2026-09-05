@@ -32,12 +32,14 @@ impl KnownHostRepo {
     /// fingerprint is a hash, and pinning the key itself removes any question
     /// of collision from the trust decision.
     pub async fn status(&self, host: &str, port: u16, public_key: &str) -> Result<HostKeyStatus> {
-        let row = sqlx::query("SELECT fingerprint, public_key FROM known_hosts WHERE host = ?1 AND port = ?2")
-            .bind(host)
-            .bind(port as i64)
-            .fetch_optional(self.db.pool())
-            .await
-            .map_err(storage_err)?;
+        let row = sqlx::query(
+            "SELECT fingerprint, public_key FROM known_hosts WHERE host = ?1 AND port = ?2",
+        )
+        .bind(host)
+        .bind(port as i64)
+        .fetch_optional(self.db.pool())
+        .await
+        .map_err(storage_err)?;
 
         let Some(row) = row else {
             return Ok(HostKeyStatus::Unknown);
@@ -143,7 +145,9 @@ mod tests {
     #[tokio::test]
     async fn a_trusted_key_is_recognised() {
         let r = repo().await;
-        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA")).await.unwrap();
+        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA"))
+            .await
+            .unwrap();
         assert_eq!(
             r.status("10.0.0.5", 22, "ssh-ed25519 AAAA").await.unwrap(),
             HostKeyStatus::Known
@@ -153,7 +157,9 @@ mod tests {
     #[tokio::test]
     async fn a_different_key_is_reported_as_a_change_not_as_unknown() {
         let r = repo().await;
-        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA")).await.unwrap();
+        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA"))
+            .await
+            .unwrap();
         match r.status("10.0.0.5", 22, "ssh-ed25519 BBBB").await.unwrap() {
             HostKeyStatus::Changed {
                 previous_fingerprint,
@@ -165,11 +171,15 @@ mod tests {
     #[tokio::test]
     async fn the_same_host_on_another_port_is_a_separate_identity() {
         let r = repo().await;
-        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA")).await.unwrap();
+        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA"))
+            .await
+            .unwrap();
         let mut other_port = key("SHA256:abc", "ssh-ed25519 AAAA");
         other_port.port = 2222;
         assert_eq!(
-            r.status("10.0.0.5", 2222, "ssh-ed25519 AAAA").await.unwrap(),
+            r.status("10.0.0.5", 2222, "ssh-ed25519 AAAA")
+                .await
+                .unwrap(),
             HostKeyStatus::Unknown
         );
         r.trust(&other_port).await.unwrap();
@@ -179,8 +189,12 @@ mod tests {
     #[tokio::test]
     async fn re_trusting_replaces_the_previous_key() {
         let r = repo().await;
-        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA")).await.unwrap();
-        r.trust(&key("SHA256:xyz", "ssh-ed25519 BBBB")).await.unwrap();
+        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA"))
+            .await
+            .unwrap();
+        r.trust(&key("SHA256:xyz", "ssh-ed25519 BBBB"))
+            .await
+            .unwrap();
         assert_eq!(r.list().await.unwrap().len(), 1);
         assert_eq!(
             r.status("10.0.0.5", 22, "ssh-ed25519 BBBB").await.unwrap(),
@@ -191,7 +205,9 @@ mod tests {
     #[tokio::test]
     async fn forgetting_a_host_returns_it_to_unknown() {
         let r = repo().await;
-        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA")).await.unwrap();
+        r.trust(&key("SHA256:abc", "ssh-ed25519 AAAA"))
+            .await
+            .unwrap();
         r.forget("10.0.0.5", 22).await.unwrap();
         assert_eq!(
             r.status("10.0.0.5", 22, "ssh-ed25519 AAAA").await.unwrap(),

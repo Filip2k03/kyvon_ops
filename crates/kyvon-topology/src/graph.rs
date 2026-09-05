@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use kyvon_core::topology::{EdgeKind, NodeKind, TopologyEdge, TopologyGraph, TopologyNode};
 use crate::docker::DockerContainerInfo;
 use crate::nginx::NginxConfigDump;
 use crate::ports::PortBinding;
+use kyvon_core::topology::{EdgeKind, NodeKind, TopologyEdge, TopologyGraph, TopologyNode};
+use std::collections::HashMap;
 
 pub struct TopologyBuilder {
     server_id: String,
@@ -21,7 +21,13 @@ impl TopologyBuilder {
         }
     }
 
-    pub fn add_node(&mut self, id: String, kind: NodeKind, label: String, metadata: HashMap<String, String>) {
+    pub fn add_node(
+        &mut self,
+        id: String,
+        kind: NodeKind,
+        label: String,
+        metadata: HashMap<String, String>,
+    ) {
         if !self.node_ids.contains_key(&id) {
             self.node_ids.insert(id.clone(), self.nodes.len());
             self.nodes.push(TopologyNode {
@@ -34,7 +40,12 @@ impl TopologyBuilder {
     }
 
     pub fn add_edge(&mut self, from: String, to: String, kind: EdgeKind, label: Option<String>) {
-        self.edges.push(TopologyEdge { from, to, kind, label });
+        self.edges.push(TopologyEdge {
+            from,
+            to,
+            kind,
+            label,
+        });
     }
 
     pub fn build(self) -> TopologyGraph {
@@ -69,7 +80,10 @@ pub fn synthesize_topology(
         builder.add_node(
             container_node_id.clone(),
             NodeKind::Container,
-            c.names.first().cloned().unwrap_or_else(|| c.id[..12.min(c.id.len())].to_string()),
+            c.names
+                .first()
+                .cloned()
+                .unwrap_or_else(|| c.id[..12.min(c.id.len())].to_string()),
             meta,
         );
 
@@ -93,7 +107,9 @@ pub fn synthesize_topology(
             builder.add_node(
                 proc_node_id.clone(),
                 NodeKind::Process,
-                p.process_name.clone().unwrap_or_else(|| format!("PID {}", pid)),
+                p.process_name
+                    .clone()
+                    .unwrap_or_else(|| format!("PID {}", pid)),
                 meta,
             );
 
@@ -123,7 +139,14 @@ pub fn synthesize_topology(
             builder.add_node(
                 block_id.clone(),
                 NodeKind::ServerBlock,
-                format!("vhost:{}", block.server_names.first().map(|s| s.as_str()).unwrap_or("default")),
+                format!(
+                    "vhost:{}",
+                    block
+                        .server_names
+                        .first()
+                        .map(|s| s.as_str())
+                        .unwrap_or("default")
+                ),
                 meta,
             );
 
@@ -132,7 +155,12 @@ pub fn synthesize_topology(
                 let mut d_meta = HashMap::new();
                 d_meta.insert("domain".into(), domain.clone());
                 builder.add_node(domain_id.clone(), NodeKind::Domain, domain.clone(), d_meta);
-                builder.add_edge(domain_id, block_id.clone(), EdgeKind::ProxiesTo, Some("reverse_proxy".into()));
+                builder.add_edge(
+                    domain_id,
+                    block_id.clone(),
+                    EdgeKind::ProxiesTo,
+                    Some("reverse_proxy".into()),
+                );
             }
 
             // Upstream proxying

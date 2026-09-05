@@ -333,6 +333,9 @@ Inter-|   Receive                                                |  Transmit
         let c = capabilities_from_hello(&hello);
         assert!(c.has(caps::SYSTEMD));
         assert!(c.has(caps::DOCKER));
-        assert!(!c.has(caps::NGINX), "an unreported command must read as absent");
+        assert!(
+            !c.has(caps::NGINX),
+            "an unreported command must read as absent"
+        );
     }
 }

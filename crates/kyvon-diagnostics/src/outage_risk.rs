@@ -49,7 +49,10 @@ pub fn calculate_outage_risk(signals: &RiskSignals) -> OutageRiskScore {
         factors.push(RiskFactor {
             name: "Critical RAM Exhaustion".into(),
             score_impact: 18,
-            current_value: format!("{:.1}% avail, {:.1}% swap", signals.mem_available_pct, signals.swap_used_pct),
+            current_value: format!(
+                "{:.1}% avail, {:.1}% swap",
+                signals.mem_available_pct, signals.swap_used_pct
+            ),
             description: "System is in imminent risk of OOM termination.".into(),
         });
         total_score += 18;
@@ -140,7 +143,8 @@ pub fn calculate_outage_risk(signals: &RiskSignals) -> OutageRiskScore {
                 name: "Elevated HTTP 5xx Error Rate".into(),
                 score_impact: 15,
                 current_value: format!("{:.2}% errors", err_rate),
-                description: "Web or API traffic suffering significant server-side failures.".into(),
+                description: "Web or API traffic suffering significant server-side failures."
+                    .into(),
             });
             total_score += 15;
         } else if err_rate > 1.0 {

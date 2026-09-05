@@ -87,7 +87,7 @@ fn next_secret_span(s: &str) -> Option<(usize, usize)> {
             continue;
         }
         if let Some((vs, ve)) = value_span_after(s, tend) {
-            if ve > vs && best.map_or(true, |b| vs < b.0) {
+            if ve > vs && best.is_none_or(|b| vs < b.0) {
                 best = Some((vs, ve));
             }
         }
@@ -95,7 +95,7 @@ fn next_secret_span(s: &str) -> Option<(usize, usize)> {
 
     // A URL with inline credentials hides the secret in the authority section.
     if let Some((vs, ve)) = url_credential_span(s) {
-        if best.map_or(true, |b| vs < b.0) {
+        if best.is_none_or(|b| vs < b.0) {
             best = Some((vs, ve));
         }
     }

@@ -1,8 +1,8 @@
+use kyvon_core::mcp::{ApprovalStatus, McpApprovalRequest};
+use kyvon_core::risk::RiskTier;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
-use kyvon_core::mcp::{ApprovalStatus, McpApprovalRequest};
-use kyvon_core::risk::RiskTier;
 
 pub struct ApprovalGate {
     pending: Mutex<HashMap<String, McpApprovalRequest>>,
@@ -16,28 +16,32 @@ impl ApprovalGate {
     }
 
     pub fn assess_operation_risk(tool_name: &str, target_env: Option<&str>) -> RiskTier {
+        if crate::tools::get_kyvon_mcp_tools()
+            .iter()
+            .any(|tool| tool.name == tool_name && tool.is_read_only)
+        {
+            return RiskTier::Safe;
+        }
         match tool_name {
-            // Read-only tools are safe
-            s if s.starts_with("kyvon_server_") || s.starts_with("kyvon_site_") || s.starts_with("kyvon_diagnose_") || s.starts_with("kyvon_topology_") => {
-                RiskTier::Safe
-            }
             "kyvon_reload_nginx" => RiskTier::Low,
             "kyvon_restart_service" => {
-                if target_env == Some("production") || target_env == Some("prod") {
-                    RiskTier::High
-                } else {
+                if matches!(target_env, Some("staging" | "development" | "dev" | "test")) {
                     RiskTier::Medium
+                } else {
+                    RiskTier::High
                 }
             }
             "kyvon_deploy" => {
-                if target_env == Some("production") || target_env == Some("prod") {
-                    RiskTier::High
-                } else {
+                if matches!(target_env, Some("staging" | "development" | "dev" | "test")) {
                     RiskTier::Medium
+                } else {
+                    RiskTier::High
                 }
             }
             "kyvon_rollback" => RiskTier::High,
-            "kyvon_drain_workload" | "kyvon_drop_database" | "kyvon_flush_firewall" => RiskTier::Critical,
+            "kyvon_drain_workload" | "kyvon_drop_database" | "kyvon_flush_firewall" => {
+                RiskTier::Critical
+            }
             _ => RiskTier::High,
         }
     }
@@ -54,7 +58,9 @@ impl ApprovalGate {
     ) -> McpApprovalRequest {
         let request_id = format!("req_{}", Uuid::new_v4().simple());
         let requires_second_confirmation = risk_tier == RiskTier::Critical;
-        let requires_backup_verification = risk_tier == RiskTier::Critical || tool_name.contains("database") || tool_name.contains("deploy");
+        let requires_backup_verification = risk_tier == RiskTier::Critical
+            || tool_name.contains("database")
+            || tool_name.contains("deploy");
 
         let req = McpApprovalRequest {
             request_id: request_id.clone(),
@@ -99,6 +105,24 @@ impl ApprovalGate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unknown_tools_and_environments_never_inherit_safe_risk() {
+        assert_eq!(
+            ApprovalGate::assess_operation_risk("kyvon_server_delete", None),
+            RiskTier::High
+        );
+        for env in [None, Some("PRODUCTION"), Some("unknown"), Some("")] {
+            assert_eq!(
+                ApprovalGate::assess_operation_risk("kyvon_deploy", env),
+                RiskTier::High
+            );
+        }
+        assert_eq!(
+            ApprovalGate::assess_operation_risk("kyvon_incident_list", None),
+            RiskTier::Safe
+        );
+    }
 
     #[test]
     fn gates_production_deployment() {

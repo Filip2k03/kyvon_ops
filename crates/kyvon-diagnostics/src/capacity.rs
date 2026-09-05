@@ -29,7 +29,8 @@ pub fn predict_capacity(samples: &[MetricTrendSample]) -> CapacityForecast {
 
     if samples.len() >= 2 {
         let first = samples.first().unwrap();
-        let delta_hours = ((latest.timestamp_ms - first.timestamp_ms) as f64 / 3_600_000.0).max(0.1);
+        let delta_hours =
+            ((latest.timestamp_ms - first.timestamp_ms) as f64 / 3_600_000.0).max(0.1);
         disk_slope_per_hour = (latest.disk_pct - first.disk_pct) / delta_hours;
         ram_slope_per_hour = (latest.ram_pct - first.ram_pct) / delta_hours;
         cpu_slope_per_hour = (latest.cpu_pct - first.cpu_pct) / delta_hours;
@@ -37,7 +38,10 @@ pub fn predict_capacity(samples: &[MetricTrendSample]) -> CapacityForecast {
 
     // Determine primary bottleneck resource
     let (bottleneck, max_slope, current_pct) = {
-        if disk_slope_per_hour >= ram_slope_per_hour && disk_slope_per_hour >= cpu_slope_per_hour && disk_slope_per_hour > 0.0 {
+        if disk_slope_per_hour >= ram_slope_per_hour
+            && disk_slope_per_hour >= cpu_slope_per_hour
+            && disk_slope_per_hour > 0.0
+        {
             ("Disk", disk_slope_per_hour, latest.disk_pct)
         } else if ram_slope_per_hour >= cpu_slope_per_hour && ram_slope_per_hour > 0.0 {
             ("RAM", ram_slope_per_hour, latest.ram_pct)

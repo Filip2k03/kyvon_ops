@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    capability::CapabilityProbe, host::HostKeyPrompt, inventory::ConnectionState,
-    telemetry::Frame, KyvonError, TimestampMs,
+    capability::CapabilityProbe, host::HostKeyPrompt, inventory::ConnectionState, telemetry::Frame,
+    KyvonError, TimestampMs,
 };
 
 /// Everything the Rust core pushes to the frontend, and everything the internal

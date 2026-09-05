@@ -22,10 +22,7 @@ pub fn bucket_start(ts: TimestampMs, resolution: Resolution) -> TimestampMs {
 /// Input need not be sorted. Buckets with no samples are absent from the
 /// result rather than being filled with zeros, so a gap in collection reads as
 /// a gap in the chart instead of as a period of zero load.
-pub fn downsample(
-    samples: &[(TimestampMs, f64)],
-    resolution: Resolution,
-) -> Vec<MetricAggregate> {
+pub fn downsample(samples: &[(TimestampMs, f64)], resolution: Resolution) -> Vec<MetricAggregate> {
     use std::collections::BTreeMap;
 
     let mut buckets: BTreeMap<TimestampMs, Vec<f64>> = BTreeMap::new();
@@ -33,7 +30,10 @@ pub fn downsample(
         if v.is_nan() {
             continue;
         }
-        buckets.entry(bucket_start(*ts, resolution)).or_default().push(*v);
+        buckets
+            .entry(bucket_start(*ts, resolution))
+            .or_default()
+            .push(*v);
     }
 
     buckets
@@ -76,8 +76,14 @@ mod tests {
 
     #[test]
     fn buckets_align_to_the_resolution() {
-        assert_eq!(bucket_start(1_770_000_061_500, Resolution::OneMinute), 1_770_000_060_000);
-        assert_eq!(bucket_start(1_770_000_061_500, Resolution::Hourly), 1_769_997_600_000);
+        assert_eq!(
+            bucket_start(1_770_000_061_500, Resolution::OneMinute),
+            1_770_000_060_000
+        );
+        assert_eq!(
+            bucket_start(1_770_000_061_500, Resolution::Hourly),
+            1_769_997_600_000
+        );
     }
 
     #[test]
@@ -115,8 +121,7 @@ mod tests {
     fn a_spike_survives_downsampling() {
         // 59 quiet seconds and one saturated one: the average hides it, the
         // maximum does not, which is why both are stored.
-        let mut samples: Vec<(TimestampMs, f64)> =
-            (0..59).map(|i| (i * 1000, 5.0)).collect();
+        let mut samples: Vec<(TimestampMs, f64)> = (0..59).map(|i| (i * 1000, 5.0)).collect();
         samples.push((59_000, 99.0));
         let out = downsample(&samples, Resolution::OneMinute);
         assert_eq!(out.len(), 1);
@@ -128,7 +133,13 @@ mod tests {
     fn resolution_is_chosen_to_keep_charts_readable() {
         assert_eq!(Resolution::for_window(300_000), Resolution::Raw);
         assert_eq!(Resolution::for_window(6 * 3_600_000), Resolution::OneMinute);
-        assert_eq!(Resolution::for_window(7 * 24 * 3_600_000), Resolution::FiveMinute);
-        assert_eq!(Resolution::for_window(30 * 24 * 3_600_000), Resolution::Hourly);
+        assert_eq!(
+            Resolution::for_window(7 * 24 * 3_600_000),
+            Resolution::FiveMinute
+        );
+        assert_eq!(
+            Resolution::for_window(30 * 24 * 3_600_000),
+            Resolution::Hourly
+        );
     }
 }

@@ -70,7 +70,8 @@ pub fn parse_stat(contents: &str) -> Result<ProcStat> {
         let mut parts = line.split_ascii_whitespace();
         let Some(key) = parts.next() else { continue };
 
-        if key == "cpu" || (key.starts_with("cpu") && key[3..].chars().all(|c| c.is_ascii_digit())) {
+        if key == "cpu" || (key.starts_with("cpu") && key[3..].chars().all(|c| c.is_ascii_digit()))
+        {
             let v: Vec<u64> = parts.filter_map(|p| p.parse().ok()).collect();
             if v.len() < 4 {
                 return Err(parse_err(
@@ -141,8 +142,14 @@ pub fn parse_meminfo(contents: &str) -> Result<MemInfo> {
     let mut saw_total = false;
 
     for line in contents.lines() {
-        let Some((key, rest)) = line.split_once(':') else { continue };
-        let kb: u64 = match rest.split_ascii_whitespace().next().and_then(|v| v.parse().ok()) {
+        let Some((key, rest)) = line.split_once(':') else {
+            continue;
+        };
+        let kb: u64 = match rest
+            .split_ascii_whitespace()
+            .next()
+            .and_then(|v| v.parse().ok())
+        {
             Some(v) => v,
             None => continue,
         };
@@ -226,7 +233,9 @@ pub fn parse_net_dev(contents: &str) -> Result<Vec<NetCounters>> {
     let mut out = Vec::new();
     // The first two lines are column headers.
     for line in contents.lines().skip(2) {
-        let Some((name, rest)) = line.split_once(':') else { continue };
+        let Some((name, rest)) = line.split_once(':') else {
+            continue;
+        };
         let v: Vec<u64> = rest
             .split_ascii_whitespace()
             .map(|p| p.parse().unwrap_or(0))

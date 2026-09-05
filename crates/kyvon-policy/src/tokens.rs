@@ -1,7 +1,7 @@
+use kyvon_core::mcp::EphemeralToken;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
-use kyvon_core::mcp::EphemeralToken;
 
 pub struct TokenAuthority {
     tokens: Mutex<HashMap<String, EphemeralToken>>,
@@ -35,7 +35,12 @@ impl TokenAuthority {
     }
 
     /// Verifies token and consumes it if single-use.
-    pub fn verify_and_consume(&self, token_id: &str, server_id: &str, required_scope: &str) -> Result<bool, &'static str> {
+    pub fn verify_and_consume(
+        &self,
+        token_id: &str,
+        server_id: &str,
+        required_scope: &str,
+    ) -> Result<bool, &'static str> {
         let mut lock = self.tokens.lock().unwrap();
         let now = kyvon_core::now_ms();
 

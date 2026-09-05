@@ -186,7 +186,9 @@ mod tests {
     #[test]
     fn first_reading_yields_no_sample() {
         let mut s = TelemetryState::new();
-        assert!(s.push_cpu(1000, stat(100, 50, 800, 50, 0), [0.0; 3]).is_none());
+        assert!(s
+            .push_cpu(1000, stat(100, 50, 800, 50, 0), [0.0; 3])
+            .is_none());
     }
 
     #[test]
@@ -212,14 +214,20 @@ mod tests {
         // Host rebooted: counters restart from near zero.
         assert!(s.push_cpu(2000, stat(10, 0, 0, 0, 0), [0.0; 3]).is_none());
         // ...and the next pair after the reboot works normally again.
-        assert!(s.push_cpu(3000, stat(110, 0, 890, 0, 0), [0.0; 3]).is_some());
+        assert!(s
+            .push_cpu(3000, stat(110, 0, 890, 0, 0), [0.0; 3])
+            .is_some());
     }
 
     #[test]
     fn per_core_utilisation_is_reported() {
         let mut s = TelemetryState::new();
-        let a = parse_stat("cpu  0 0 0 0 0 0 0 0\ncpu0 0 0 0 0 0 0 0 0\ncpu1 0 0 0 0 0 0 0 0\n").unwrap();
-        let b = parse_stat("cpu  100 0 0 100 0 0 0 0\ncpu0 90 0 0 10 0 0 0 0\ncpu1 10 0 0 90 0 0 0 0\n").unwrap();
+        let a = parse_stat("cpu  0 0 0 0 0 0 0 0\ncpu0 0 0 0 0 0 0 0 0\ncpu1 0 0 0 0 0 0 0 0\n")
+            .unwrap();
+        let b = parse_stat(
+            "cpu  100 0 0 100 0 0 0 0\ncpu0 90 0 0 10 0 0 0 0\ncpu1 10 0 0 90 0 0 0 0\n",
+        )
+        .unwrap();
         s.push_cpu(1000, a, [0.0; 3]);
         let out = s.push_cpu(2000, b, [0.0; 3]).unwrap();
         assert_eq!(out.cores.len(), 2);
@@ -254,7 +262,13 @@ mod tests {
         let mut s = TelemetryState::new();
         s.push_net(1000, vec![netc("lo", 0, 0), netc("eth0", 0, 0)]);
         let out = s
-            .push_net(2000, vec![netc("lo", 999_999_999, 999_999_999), netc("eth0", 1000, 1000)])
+            .push_net(
+                2000,
+                vec![
+                    netc("lo", 999_999_999, 999_999_999),
+                    netc("eth0", 1000, 1000),
+                ],
+            )
             .unwrap();
         assert_eq!(out.interfaces.len(), 1);
         assert_eq!(out.interfaces[0].name, "eth0");
@@ -265,7 +279,10 @@ mod tests {
         let mut s = TelemetryState::new();
         s.push_net(1000, vec![netc("eth0", 0, 0)]);
         let out = s
-            .push_net(2000, vec![netc("eth0", 100, 100), netc("wg0", 5_000_000, 5_000_000)])
+            .push_net(
+                2000,
+                vec![netc("eth0", 100, 100), netc("wg0", 5_000_000, 5_000_000)],
+            )
             .unwrap();
         // wg0 has no baseline, so its lifetime total is not reported as a rate.
         assert_eq!(out.interfaces.len(), 1);
@@ -277,6 +294,8 @@ mod tests {
         let mut s = TelemetryState::new();
         s.push_cpu(1000, stat(100, 0, 900, 0, 0), [0.0; 3]);
         s.reset();
-        assert!(s.push_cpu(2000, stat(200, 0, 1800, 0, 0), [0.0; 3]).is_none());
+        assert!(s
+            .push_cpu(2000, stat(200, 0, 1800, 0, 0), [0.0; 3])
+            .is_none());
     }
 }

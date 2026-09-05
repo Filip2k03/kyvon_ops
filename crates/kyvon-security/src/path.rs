@@ -14,8 +14,17 @@ pub enum PathClass {
 
 /// Prefixes whose contents govern access to the machine itself.
 const CRITICAL_PREFIXES: &[&str] = &[
-    "/boot", "/dev", "/proc", "/sys", "/etc/ssh", "/etc/sudoers", "/etc/shadow", "/etc/passwd",
-    "/etc/group", "/etc/fstab", "/root/.ssh",
+    "/boot",
+    "/dev",
+    "/proc",
+    "/sys",
+    "/etc/ssh",
+    "/etc/sudoers",
+    "/etc/shadow",
+    "/etc/passwd",
+    "/etc/group",
+    "/etc/fstab",
+    "/root/.ssh",
 ];
 
 /// Prefixes holding system configuration.
@@ -152,8 +161,14 @@ mod tests {
     fn classifies_sensitive_trees() {
         assert_eq!(classify_path("/etc/ssh/sshd_config"), PathClass::Critical);
         assert_eq!(classify_path("/boot/vmlinuz"), PathClass::Critical);
-        assert_eq!(classify_path("/etc/nginx/nginx.conf"), PathClass::SystemConfig);
-        assert_eq!(classify_path("/var/www/html/index.html"), PathClass::Ordinary);
+        assert_eq!(
+            classify_path("/etc/nginx/nginx.conf"),
+            PathClass::SystemConfig
+        );
+        assert_eq!(
+            classify_path("/var/www/html/index.html"),
+            PathClass::Ordinary
+        );
     }
 
     #[test]

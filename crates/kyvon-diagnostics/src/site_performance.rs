@@ -15,7 +15,7 @@ pub struct LatencyBreakdownSample {
 
 pub fn diagnose_site_performance(sample: &LatencyBreakdownSample) -> SitePerformanceReport {
     // Identify primary bottleneck by highest latency segment
-    let mut segments = vec![
+    let mut segments = [
         ("DNS Resolution", sample.dns_ms),
         ("TLS Handshake", sample.tls_ms),
         ("Nginx Gateway", sample.nginx_ms),
@@ -26,14 +26,23 @@ pub fn diagnose_site_performance(sample: &LatencyBreakdownSample) -> SitePerform
     ];
 
     segments.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    let primary_bottleneck = segments.first().map(|s| s.0).unwrap_or("Unknown").to_string();
+    let primary_bottleneck = segments
+        .first()
+        .map(|s| s.0)
+        .unwrap_or("Unknown")
+        .to_string();
 
     // Calculate percentiles
     let mut sorted_latencies = sample.observed_latencies_ms.clone();
     sorted_latencies.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
     let avg_latency_ms = if sorted_latencies.is_empty() {
-        sample.dns_ms + sample.tls_ms + sample.nginx_ms + sample.backend_ms + sample.database_ms + sample.external_api_ms
+        sample.dns_ms
+            + sample.tls_ms
+            + sample.nginx_ms
+            + sample.backend_ms
+            + sample.database_ms
+            + sample.external_api_ms
     } else {
         sorted_latencies.iter().sum::<f64>() / sorted_latencies.len() as f64
     };
@@ -41,14 +50,16 @@ pub fn diagnose_site_performance(sample: &LatencyBreakdownSample) -> SitePerform
     let p95_ms = if sorted_latencies.is_empty() {
         avg_latency_ms * 1.5
     } else {
-        let idx = ((sorted_latencies.len() as f64 * 0.95).floor() as usize).min(sorted_latencies.len() - 1);
+        let idx = ((sorted_latencies.len() as f64 * 0.95).floor() as usize)
+            .min(sorted_latencies.len() - 1);
         sorted_latencies[idx]
     };
 
     let p99_ms = if sorted_latencies.is_empty() {
         avg_latency_ms * 2.2
     } else {
-        let idx = ((sorted_latencies.len() as f64 * 0.99).floor() as usize).min(sorted_latencies.len() - 1);
+        let idx = ((sorted_latencies.len() as f64 * 0.99).floor() as usize)
+            .min(sorted_latencies.len() - 1);
         sorted_latencies[idx]
     };
 

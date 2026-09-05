@@ -79,9 +79,19 @@ mod tests {
             requests_per_min: 3200,
         }];
 
-        let report = generate_what_changed_report("s1", "today", &deps, &["nginx.conf timeout modified".into()], &[], Some(22.0));
+        let report = generate_what_changed_report(
+            "s1",
+            "today",
+            &deps,
+            &["nginx.conf timeout modified".into()],
+            &[],
+            Some(22.0),
+        );
         assert_eq!(report.changes.len(), 3);
         assert!(report.changes.iter().any(|c| c.category == "Deployments"));
-        assert!(report.changes.iter().any(|c| c.category == "Resources" && c.is_anomalous));
+        assert!(report
+            .changes
+            .iter()
+            .any(|c| c.category == "Resources" && c.is_anomalous));
     }
 }
