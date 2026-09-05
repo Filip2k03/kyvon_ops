@@ -6,7 +6,8 @@ use std::io::{self, Write};
 use std::process;
 
 fn print_help() {
-    println!(r#"KyvonOPS V3.0 CLI — Sovereign DevOps & Infrastructure Intelligence
+    println!(
+        r#"KyvonOPS V3.0 CLI — Sovereign DevOps & Infrastructure Intelligence
 
 USAGE:
     kyvon <COMMAND> [OPTIONS]
@@ -28,7 +29,8 @@ COMMANDS:
     device list                 List paired mobile companion devices (iOS/Android)
     device revoke <id>          Revoke mobile device pairing authorization
     version                     Print KyvonOPS V3.0 version and build metadata
-"#);
+"#
+    );
 }
 
 fn confirm_action(target: &str, action: &str, risk: &str, impact: &str) -> bool {
@@ -65,11 +67,23 @@ async fn main() {
             }
             match args[2].as_str() {
                 "list" => {
-                    println!("{:<15} {:<18} {:<10} {:<12} {:<15}", "ALIAS", "IP ADDRESS", "STATUS", "RISK SCORE", "UPTIME");
+                    println!(
+                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
+                        "ALIAS", "IP ADDRESS", "STATUS", "RISK SCORE", "UPTIME"
+                    );
                     println!("{:-<75}", "");
-                    println!("{:<15} {:<18} {:<10} {:<12} {:<15}", "prod-fra-01", "198.51.100.24", "NOMINAL", "32/100", "47d 8h");
-                    println!("{:<15} {:<18} {:<10} {:<12} {:<15}", "staging-lon-02", "203.0.113.88", "CRITICAL", "78/100", "12d 2h");
-                    println!("{:<15} {:<18} {:<10} {:<12} {:<15}", "edge-sgp-03", "198.51.100.109", "WARNING", "48/100", "94d 18h");
+                    println!(
+                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
+                        "prod-fra-01", "198.51.100.24", "NOMINAL", "32/100", "47d 8h"
+                    );
+                    println!(
+                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
+                        "staging-lon-02", "203.0.113.88", "CRITICAL", "78/100", "12d 2h"
+                    );
+                    println!(
+                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
+                        "edge-sgp-03", "198.51.100.109", "WARNING", "48/100", "94d 18h"
+                    );
                 }
                 "health" => {
                     let id = args.get(3).map(|s| s.as_str()).unwrap_or("prod-fra-01");
@@ -93,10 +107,16 @@ async fn main() {
                     println!("    └── Cloudflare CDN (Full Strict TLS) -> 198.51.100.24:443");
                     println!("  [Reverse Proxy]");
                     println!("    └── Nginx 1.26 (worker_processes: 4, keepalive: 32)");
-                    println!("         ├── api.example.com     -> 127.0.0.1:3000 (docker: shop-api)");
-                    println!("         └── website.example.com -> 127.0.0.1:8080 (docker: shop-web)");
+                    println!(
+                        "         ├── api.example.com     -> 127.0.0.1:3000 (docker: shop-api)"
+                    );
+                    println!(
+                        "         └── website.example.com -> 127.0.0.1:8080 (docker: shop-web)"
+                    );
                     println!("  [Active Containers]");
-                    println!("    ├── shop-api (node:20-alpine)  | CPU: 12.4% | RSS: 380MB | Health: OK");
+                    println!(
+                        "    ├── shop-api (node:20-alpine)  | CPU: 12.4% | RSS: 380MB | Health: OK"
+                    );
                     println!("    ├── shop-web (nginx:alpine)     | CPU: 1.8%  | RSS: 45MB  | Health: OK");
                     println!("    └── postgres-16                 | CPU: 8.2%  | RSS: 1.2GB | Health: OK");
                 }
@@ -113,11 +133,27 @@ async fn main() {
             }
             match args[2].as_str() {
                 "list" => {
-                    println!("{:<24} {:<15} {:<10} {:<12} {:<15}", "DOMAIN", "TARGET VPS", "PROXY", "TLS STATUS", "LATENCY");
+                    println!(
+                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
+                        "DOMAIN", "TARGET VPS", "PROXY", "TLS STATUS", "LATENCY"
+                    );
                     println!("{:-<80}", "");
-                    println!("{:<24} {:<15} {:<10} {:<12} {:<15}", "api.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "28ms (p95)");
-                    println!("{:<24} {:<15} {:<10} {:<12} {:<15}", "website.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "14ms (p95)");
-                    println!("{:<24} {:<15} {:<10} {:<12} {:<15}", "staging.example.com", "staging-lon-02", "DNS ONLY", "EXPIRED", "340ms (p95)");
+                    println!(
+                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
+                        "api.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "28ms (p95)"
+                    );
+                    println!(
+                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
+                        "website.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "14ms (p95)"
+                    );
+                    println!(
+                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
+                        "staging.example.com",
+                        "staging-lon-02",
+                        "DNS ONLY",
+                        "EXPIRED",
+                        "340ms (p95)"
+                    );
                 }
                 "inspect" => {
                     let domain = args.get(3).map(|s| s.as_str()).unwrap_or("api.example.com");
@@ -148,7 +184,7 @@ async fn main() {
                 target,
                 &format!("Deploy release artifact {}", version),
                 "HIGH (Tier 2 Mutating Write)",
-                "Service will gracefully restart workers under blue-green staging."
+                "Service will gracefully restart workers under blue-green staging.",
             ) {
                 println!("Deployment cancelled by operator.");
                 return;
@@ -156,7 +192,10 @@ async fn main() {
 
             println!("==> [1/4] Acquiring environment deployment lock (§59 PROMPTS.md)...");
             println!("==> [2/4] Executing pre-flight capacity check (Capacity Headroom: SAFE)...");
-            println!("==> [3/4] Pulling artifact {} and updating systemd service...", version);
+            println!(
+                "==> [3/4] Pulling artifact {} and updating systemd service...",
+                version
+            );
             println!("==> [4/4] Verifying post-flight health (HTTP status 200, 0 error spikes)...");
             println!("Deployment successful. Change recorded in immutable audit journal.");
         }
@@ -171,7 +210,7 @@ async fn main() {
                 target,
                 "Emergency Rollback to last verified snapshot",
                 "HIGH (Tier 2 Mutating Write)",
-                "Previous container/service version will be restored immediately."
+                "Previous container/service version will be restored immediately.",
             ) {
                 println!("Rollback cancelled by operator.");
                 return;
@@ -184,16 +223,30 @@ async fn main() {
         }
         "incident" => {
             println!("=== Active & Recent SRE Incidents (§12 PROMPTS.md) ===");
-            println!("{:<12} {:<18} {:<24} {:<15} {:<12}", "SEVERITY", "SERVER", "TITLE", "STARTED", "STATUS");
+            println!(
+                "{:<12} {:<18} {:<24} {:<15} {:<12}",
+                "SEVERITY", "SERVER", "TITLE", "STARTED", "STATUS"
+            );
             println!("{:-<85}", "");
-            println!("{:<12} {:<18} {:<24} {:<15} {:<12}", "CRITICAL", "staging-lon-02", "Kernel Memory PSI Stall", "12m ago", "INVESTIGATING");
-            println!("{:<12} {:<18} {:<24} {:<15} {:<12}", "LOW", "prod-fra-01", "Nginx Reload Config", "2h ago", "RESOLVED");
+            println!(
+                "{:<12} {:<18} {:<24} {:<15} {:<12}",
+                "CRITICAL", "staging-lon-02", "Kernel Memory PSI Stall", "12m ago", "INVESTIGATING"
+            );
+            println!(
+                "{:<12} {:<18} {:<24} {:<15} {:<12}",
+                "LOW", "prod-fra-01", "Nginx Reload Config", "2h ago", "RESOLVED"
+            );
         }
         "diagnose" => {
             let target = args.get(2).map(|s| s.as_str()).unwrap_or("prod-fra-01");
-            println!("=== KyvonOPS Autonomous Root-Cause Diagnostics: {} ===", target);
+            println!(
+                "=== KyvonOPS Autonomous Root-Cause Diagnostics: {} ===",
+                target
+            );
             println!("  [Root Cause Summary]");
-            println!("    Nominal operation. No critical CPU, memory, or disk I/O bottlenecks detected.");
+            println!(
+                "    Nominal operation. No critical CPU, memory, or disk I/O bottlenecks detected."
+            );
             println!("  [Telemetry Corroboration]");
             println!("    • Memory PSI stall avg10: 2.1% (Safe threshold < 15%)");
             println!("    • Inode headroom: 72% free");
@@ -207,25 +260,33 @@ async fn main() {
             }
             match args[2].as_str() {
                 "install" => {
-                    println!("=== KyvonOPS MCP Client Configuration Generator (§101 PROMPTS.md) ===");
+                    println!(
+                        "=== KyvonOPS MCP Client Configuration Generator (§101 PROMPTS.md) ==="
+                    );
                     println!("Add the following block to your MCP client config (e.g. claude_desktop_config.json):");
-                    println!(r#"{{
+                    println!(
+                        r#"{{
   "mcpServers": {{
     "kyvon": {{
       "command": "kyvon-mcp",
       "args": []
     }}
   }}
-}}"#);
+}}"#
+                    );
                     println!("\nSupported Clients: Claude Code, Cursor CLI, OpenAI Codex Astra, Gemini CLI.");
                 }
                 "doctor" => {
                     println!("=== KyvonOPS MCP Doctor & Health Check ===");
-                    println!("  [1] Stdio Transport:               ONLINE (JSON-RPC 2.0 compliant)");
+                    println!(
+                        "  [1] Stdio Transport:               ONLINE (JSON-RPC 2.0 compliant)"
+                    );
                     println!("  [2] Typed Tools Registered:         17 tools active (0 unrestricted shells)");
                     println!("  [3] Policy Approval Gate:          ENFORCED (Tier 0-3 risk matrix active)");
                     println!("  [4] Secret Redactor Pipeline:      VERIFIED (Private keys/tokens scrubbed)");
-                    println!("  [5] OS Keyring Custody:            ACTIVE (Secrets isolated from AI)");
+                    println!(
+                        "  [5] OS Keyring Custody:            ACTIVE (Secrets isolated from AI)"
+                    );
                     println!("All MCP subsystem integrity checks PASSED.");
                 }
                 cmd => {
@@ -242,7 +303,10 @@ async fn main() {
             match args[2].as_str() {
                 "install" => {
                     let host = args.get(3).map(|s| s.as_str()).unwrap_or("<user@hostname>");
-                    println!("=== Deploying Musl Static Telemetry Probe: {} (§84 PROMPTS.md) ===", host);
+                    println!(
+                        "=== Deploying Musl Static Telemetry Probe: {} (§84 PROMPTS.md) ===",
+                        host
+                    );
                     println!("  Target Architecture: x86_64-unknown-linux-musl");
                     println!("  Binary Payload:      < 3.8 MB (Zero dynamic dependencies)");
                     println!("  System Privileges:   Unprivileged syscall reader (/proc, /sys)");
@@ -271,10 +335,25 @@ async fn main() {
             match args[2].as_str() {
                 "list" => {
                     println!("=== Paired Mobile Devices (§16 & §98 PROMPTS.md) ===");
-                    println!("{:<18} {:<10} {:<38} {:<15}", "DEVICE NAME", "PLATFORM", "KEY FINGERPRINT", "LAST SEEN");
+                    println!(
+                        "{:<18} {:<10} {:<38} {:<15}",
+                        "DEVICE NAME", "PLATFORM", "KEY FINGERPRINT", "LAST SEEN"
+                    );
                     println!("{:-<85}", "");
-                    println!("{:<18} {:<10} {:<38} {:<15}", "Stephan's iPhone", "iOS 17.5", "SHA256:4f8a9e7b2c1d0f5e8a7b9c6d3e2f1a0b", "2 minutes ago");
-                    println!("{:<18} {:<10} {:<38} {:<15}", "Pixel 8 Pro", "Android 14", "SHA256:9c8e7d6b5a4f3e2d1c0b9a8f7e6d5c4b", "1 hour ago");
+                    println!(
+                        "{:<18} {:<10} {:<38} {:<15}",
+                        "Stephan's iPhone",
+                        "iOS 17.5",
+                        "SHA256:4f8a9e7b2c1d0f5e8a7b9c6d3e2f1a0b",
+                        "2 minutes ago"
+                    );
+                    println!(
+                        "{:<18} {:<10} {:<38} {:<15}",
+                        "Pixel 8 Pro",
+                        "Android 14",
+                        "SHA256:9c8e7d6b5a4f3e2d1c0b9a8f7e6d5c4b",
+                        "1 hour ago"
+                    );
                 }
                 "revoke" => {
                     let id = args.get(3).map(|s| s.as_str()).unwrap_or("unknown");
@@ -282,12 +361,15 @@ async fn main() {
                         id,
                         "Revoke Device Authorization",
                         "MEDIUM (Security Revocation)",
-                        "Device will immediately lose observation, approval, and 2FA capability."
+                        "Device will immediately lose observation, approval, and 2FA capability.",
                     ) {
                         println!("Revocation cancelled.");
                         return;
                     }
-                    println!("Device '{}' revoked. Cryptographic sessions invalidated.", id);
+                    println!(
+                        "Device '{}' revoked. Cryptographic sessions invalidated.",
+                        id
+                    );
                 }
                 cmd => {
                     eprintln!("Unknown device subcommand: '{}'", cmd);
