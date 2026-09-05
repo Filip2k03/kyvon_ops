@@ -2,21 +2,41 @@ mod commands;
 mod state;
 
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tauri::Manager;
+
+use kyvon_storage::Database;
 use state::{AppState, SessionManager};
-use kyvon_storage::db::Database;
+use tauri::Manager;
+use tokio::sync::Mutex;
+
+/// Where the local store lives.
+///
+/// Under the OS application-data directory, so it survives restarts and
+/// upgrades. The previous implementation opened `:memory:`, which meant every
+/// server the operator added vanished when the window closed.
+fn database_path(app: &tauri::App) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    let dir = app.path().app_data_dir()?;
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir.join("kyvon.db"))
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            // Setup DB and State
-            let db = Database::new(":memory:").expect("Failed to create db");
-            let manager = Arc::new(Mutex::new(SessionManager::new()));
+            let path = database_path(app)?;
+            // Block here deliberately: no command may run before the store is
+            // open, and failing loudly at startup is better than every later
+            // call reporting a mysterious storage error.
+            let db = tauri::async_runtime::block_on(Database::open(&path)).map_err(|e| {
+                format!(
+                    "could not open the local database at {}: {e}",
+                    path.display()
+                )
+            })?;
+
             app.manage(AppState {
-                db: Arc::new(db),
-                manager,
+                db,
+                sessions: Arc::new(Mutex::new(SessionManager::new())),
             });
             Ok(())
         })

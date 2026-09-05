@@ -4,5 +4,5 @@
 )]
 
 fn main() {
-    kyvon_ops_lib::run();
+    kyvon_ops::run();
 }

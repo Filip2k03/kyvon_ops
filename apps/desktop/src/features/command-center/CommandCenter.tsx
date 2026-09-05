@@ -127,9 +127,9 @@ export const CommandCenter: React.FC = () => {
                 onClick={() => navigate('/servers')}
                 className="text-left bg-surface/90 border border-border/80 hover:border-border rounded-xl p-5 shadow-xl transition-all"
               >
-                <h3 className="font-bold text-sm text-white">{server.name}</h3>
+                <h3 className="font-bold text-sm text-white">{server.alias}</h3>
                 <div className="text-[11px] font-mono text-secondary mt-1">
-                  {server.user}@{server.host}:{server.port}
+                  {server.username}@{server.hostname}:{server.port}
                 </div>
                 <div className="mt-3 pt-3 border-t border-border/60 text-[11px] text-secondary/70 italic">
                   Health not measured — telemetry not connected

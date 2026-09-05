@@ -4,7 +4,7 @@ import { AddServerDialog, NewServerData } from './AddServerDialog';
 import { useNavigate } from 'react-router-dom';
 import { Backend, hasBackend, type Loaded } from '../../lib/backend';
 import { LoadedFallback, NoDataState } from '../../components/ui/NoDataState';
-import type { ServerProfile } from '../../types';
+import { describeAuth, type ServerProfile } from '../../types';
 
 /**
  * The fleet inventory, read from the local SQLite store over Tauri IPC.
@@ -32,10 +32,10 @@ export const ServerList: React.FC = () => {
 
   const handleAddServer = async (data: NewServerData) => {
     const created = await Backend.addServer({
-      name: data.alias,
-      host: data.hostname,
+      alias: data.alias,
+      hostname: data.hostname,
       port: data.port,
-      user: data.username,
+      username: data.username,
       tags: [data.tag],
     });
     // Re-read rather than optimistically inserting: the store assigns the id
@@ -117,7 +117,7 @@ export const ServerList: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                    {server.name}
+                    {server.alias}
                     {server.tags.map((tag) => (
                       <span
                         key={tag}
@@ -128,7 +128,7 @@ export const ServerList: React.FC = () => {
                     ))}
                   </h3>
                   <div className="text-[11px] font-mono text-secondary mt-0.5">
-                    {server.user}@{server.host}:{server.port}
+                    {server.username}@{server.hostname}:{server.port}
                   </div>
                 </div>
               </div>
@@ -137,13 +137,7 @@ export const ServerList: React.FC = () => {
             <div className="p-3 rounded-lg bg-background/60 border border-border/60 text-xs space-y-2">
               <div className="flex justify-between items-center text-secondary">
                 <span>Authentication</span>
-                <span className="text-white font-medium text-[11px]">
-                  {server.auth.type === 'private_key'
-                    ? 'Private key'
-                    : server.auth.type === 'password'
-                    ? 'Password (keychain)'
-                    : 'SSH agent'}
-                </span>
+                <span className="text-white font-medium text-[11px]">{describeAuth(server.auth)}</span>
               </div>
               <div className="flex justify-between items-center text-secondary">
                 <span>Live telemetry</span>

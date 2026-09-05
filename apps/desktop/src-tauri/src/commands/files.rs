@@ -1,22 +1,39 @@
-use tauri::State;
 use crate::state::AppState;
+use tauri::State;
 
 #[tauri::command]
-pub async fn list_files(state: State<'_, AppState>, id: String, path: String) -> Result<Vec<String>, String> {
+pub async fn list_files(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+) -> Result<Vec<String>, String> {
     Ok(vec![])
 }
 
 #[tauri::command]
-pub async fn read_file(state: State<'_, AppState>, id: String, path: String) -> Result<String, String> {
+pub async fn read_file(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+) -> Result<String, String> {
     Ok("".to_string())
 }
 
 #[tauri::command]
-pub async fn write_file(state: State<'_, AppState>, id: String, path: String, content: String) -> Result<(), String> {
+pub async fn write_file(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+    content: String,
+) -> Result<(), String> {
     Ok(())
 }
 
 #[tauri::command]
-pub async fn delete_file(state: State<'_, AppState>, id: String, path: String) -> Result<(), String> {
+pub async fn delete_file(
+    state: State<'_, AppState>,
+    id: String,
+    path: String,
+) -> Result<(), String> {
     Ok(())
 }

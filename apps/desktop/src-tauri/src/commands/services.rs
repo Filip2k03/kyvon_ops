@@ -1,5 +1,5 @@
-use tauri::State;
 use crate::state::AppState;
+use tauri::State;
 
 #[tauri::command]
 pub async fn list_services(state: State<'_, AppState>, id: String) -> Result<Vec<String>, String> {
@@ -7,11 +7,19 @@ pub async fn list_services(state: State<'_, AppState>, id: String) -> Result<Vec
 }
 
 #[tauri::command]
-pub async fn start_service(state: State<'_, AppState>, id: String, service: String) -> Result<(), String> {
+pub async fn start_service(
+    state: State<'_, AppState>,
+    id: String,
+    service: String,
+) -> Result<(), String> {
     Ok(())
 }
 
 #[tauri::command]
-pub async fn stop_service(state: State<'_, AppState>, id: String, service: String) -> Result<(), String> {
+pub async fn stop_service(
+    state: State<'_, AppState>,
+    id: String,
+    service: String,
+) -> Result<(), String> {
     Ok(())
 }
