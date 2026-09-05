@@ -10,8 +10,8 @@ import type { Loaded } from '../../lib/backend';
  * absence — never as a zero, a dash, or a plausible placeholder figure.
  *
  * The three variants are deliberately distinct: an operator needs to know
- * whether a host has no servers configured, whether this build simply cannot
- * reach a backend, or whether something broke.
+ * whether nothing is configured yet, whether this build simply cannot reach a
+ * backend, or whether a call broke.
  */
 
 type Variant = 'unavailable' | 'failed' | 'empty';
@@ -42,33 +42,17 @@ export const NoDataState: React.FC<NoDataStateProps> = ({ variant, title, detail
 };
 
 /**
- * Render the non-`ok` half of a `Loaded<T>`.
- *
- * Returns `null` for `ok` so a caller can write
- * `<LoadedFallback result={r} .../>` above its real content and let the type
- * checker keep the two branches in step.
+ * Render the non-`ok` half of a `Loaded<T>`, or nothing when the call
+ * succeeded — so a screen can place this above its real content and let the
+ * type checker keep the two branches in step.
  */
-export const LoadedFallback = <T,>({
-  result,
-  emptyTitle,
-  emptyDetail,
-  action,
-}: {
-  result: Loaded<T>;
-  emptyTitle: string;
-  emptyDetail: string;
-  action?: React.ReactNode;
-}) => {
+export function LoadedFallback<T>({ result }: { result: Loaded<T> }) {
   if (result.state === 'ok') return null;
   return (
     <NoDataState
       variant={result.state === 'unavailable' ? 'unavailable' : 'failed'}
       title={result.reason}
       detail={result.detail}
-      action={result.state === 'unavailable' ? action : undefined}
     />
   );
-};
-
-export { type Variant as NoDataVariant };
-export const emptyTitles = { emptyTitle: '', emptyDetail: '' };
+}
