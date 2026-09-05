@@ -22,6 +22,7 @@ import { VpsHealthMatrix } from './features/servers/VpsHealthMatrix';
 import { DevicePairingCenter } from './features/security/DevicePairingCenter';
 import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManager';
 import { MobileCompanionView } from './features/mobile/MobileCompanionView';
+import { PromotionsHub } from './features/promotions/PromotionsHub';
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/files" element={<FileManager />} />
         <Route path="/notes" element={<NotesEditor />} />
         <Route path="/companion" element={<MobileCompanionView />} />
+        <Route path="/promotions" element={<PromotionsHub />} />
         <Route path="/downloads" element={<DownloadPortal />} />
       </Route>
     </Routes>

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
   Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download,
-  Monitor, QrCode, Briefcase, Radio
+  Monitor, QrCode, Briefcase, Radio, Share2
 } from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
@@ -26,6 +26,7 @@ const navItems = [
   { path: '/storage', icon: HardDrive, label: 'Storage' },
   { path: '/security', icon: Shield, label: 'Security' },
   { path: '/logs', icon: FileText, label: 'Logs' },
+  { path: '/promotions', icon: Share2, label: 'Promotions Engine' },
   { path: '/downloads', icon: Download, label: 'Downloads & Donate' },
 ];
 
