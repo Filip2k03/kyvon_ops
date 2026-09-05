@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
   Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download,
-  Monitor, QrCode, Briefcase, Radio, Share2
+  Monitor, QrCode, Briefcase, Radio, Share2, X
 } from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
@@ -32,14 +32,31 @@ const navItems = [
 ];
 
 export const Sidebar = () => {
-  const { sidebarCollapsed } = useUiStore();
+  const { sidebarCollapsed, mobileDrawerOpen, setMobileDrawerOpen } = useUiStore();
   const location = useLocation();
 
-  return (
-    <aside className={clsx('bg-surface border-r border-border flex flex-col transition-all duration-300', sidebarCollapsed ? 'w-14' : 'w-56')}>
-      <div className="p-4 flex items-center h-14 border-b border-border">
-        <Server className="text-info w-6 h-6 shrink-0" />
-        {!sidebarCollapsed && <span className="ml-3 font-bold">KyvonOPS</span>}
+  const handleLinkClick = () => {
+    if (mobileDrawerOpen) {
+      setMobileDrawerOpen(false);
+    }
+  };
+
+  const navContent = (
+    <>
+      <div className="p-4 flex items-center justify-between h-14 border-b border-border">
+        <div className="flex items-center">
+          <Server className="text-info w-6 h-6 shrink-0" />
+          {(!sidebarCollapsed || mobileDrawerOpen) && <span className="ml-3 font-bold text-white">KyvonOPS</span>}
+        </div>
+        {mobileDrawerOpen && (
+          <button
+            onClick={() => setMobileDrawerOpen(false)}
+            className="md:hidden text-secondary hover:text-white p-1 rounded-lg hover:bg-elevated transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-2">
@@ -47,18 +64,50 @@ export const Sidebar = () => {
             <li key={item.path}>
               <Link
                 to={item.path}
+                onClick={handleLinkClick}
                 className={clsx(
-                  'flex items-center rounded-md px-2 py-2 hover:bg-elevated transition-colors',
-                  location.pathname.startsWith(item.path) ? 'bg-elevated text-white' : 'text-secondary'
+                  'flex items-center rounded-md px-3 py-2.5 min-h-[44px] hover:bg-elevated transition-colors text-xs font-medium',
+                  location.pathname.startsWith(item.path) ? 'bg-elevated text-white font-bold' : 'text-secondary'
                 )}
               >
-                <item.icon className="w-5 h-5 shrink-0" />
-                {!sidebarCollapsed && <span className="ml-3 text-sm">{item.label}</span>}
+                <item.icon className="w-5 h-5 shrink-0" strokeWidth={1.75} />
+                {(!sidebarCollapsed || mobileDrawerOpen) && <span className="ml-3 text-sm">{item.label}</span>}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside
+        className={clsx(
+          'hidden md:flex bg-surface border-r border-border flex-col transition-all duration-300',
+          sidebarCollapsed ? 'w-14' : 'w-56'
+        )}
+      >
+        {navContent}
+      </aside>
+
+      {/* Mobile Slide-over Drawer Overlay */}
+      {mobileDrawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileDrawerOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Pane */}
+          <aside className="relative flex flex-col w-72 max-w-[85vw] bg-surface border-r border-border shadow-2xl z-50 animate-in slide-in-from-left duration-200">
+            {navContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 };

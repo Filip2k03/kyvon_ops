@@ -102,30 +102,30 @@ export const DigitalTwinExplorer: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+      <div className="bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-400">
-              <Network className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-400 shrink-0">
+              <Network className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                Server Digital Twin & Outage Risk Engine
-                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <h1 className="text-lg sm:text-xl font-bold text-white flex flex-wrap items-center gap-2">
+                Server Digital Twin & Risk
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                   PROMPTS.md §§30-34
                 </span>
               </h1>
-              <p className="text-sm text-secondary">
+              <p className="text-xs sm:text-sm text-secondary">
                 Internal graph model synthesizing reverse proxies, containers, databases, blast radiuses, and capacity forecasts.
               </p>
             </div>
           </div>
 
           {/* Server Selector */}
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setSelectedServer('prod-fra-01')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors min-h-[44px] ${
                 selectedServer === 'prod-fra-01'
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-background border border-border text-secondary hover:text-white'
@@ -136,7 +136,7 @@ export const DigitalTwinExplorer: React.FC = () => {
             </button>
             <button
               onClick={() => setSelectedServer('staging-lon-02')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors min-h-[44px] ${
                 selectedServer === 'staging-lon-02'
                   ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                   : 'bg-background border border-border text-secondary hover:text-white'

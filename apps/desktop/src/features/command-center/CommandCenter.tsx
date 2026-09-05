@@ -55,7 +55,7 @@ export const CommandCenter: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="bg-surface/80 border border-border/80 backdrop-blur-md rounded-xl p-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-surface/80 border border-border/80 backdrop-blur-md rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-info/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -90,7 +90,7 @@ export const CommandCenter: React.FC = () => {
           explicitly uncollected rather than omitted, so the gap between what
           KyvonOPS promises and what it currently measures stays visible.
         */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border/60">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mt-6 pt-6 border-t border-border/60">
           <PendingSignal icon={Cpu} label="Resource utilization" source="kyvon-telemetry over SSH" />
           <PendingSignal icon={Layers} label="Capacity headroom" source="kyvon-diagnostics::capacity" />
           <PendingSignal icon={Activity} label="Operational risk" source="kyvon-diagnostics::outage_risk" />

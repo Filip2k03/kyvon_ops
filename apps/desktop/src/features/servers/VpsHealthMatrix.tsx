@@ -114,30 +114,30 @@ export const VpsHealthMatrix: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Banner */}
-      <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
+      <div className="bg-surface border border-border rounded-xl p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
-              <Server className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 shrink-0">
+              <Server className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                VPS Fleet Health & Deep Inspection Matrix
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <h1 className="text-lg sm:text-xl font-bold text-white flex flex-wrap items-center gap-2">
+                VPS Fleet Health Matrix
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   V3.0 Engine
                 </span>
               </h1>
-              <p className="text-sm text-secondary">
-                Continuous cgroups v2 PSI memory stalls, disk inode saturation, TCP socket drops, and systemd unit health across all nodes.
+              <p className="text-xs sm:text-sm text-secondary">
+                Continuous cgroups v2 PSI memory stalls, disk inode saturation, TCP socket drops, and systemd unit health.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setViewMode('desktop')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                viewMode === 'desktop' ? 'bg-info/20 text-info border-info' : 'bg-background border-border text-secondary'
+              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors min-h-[44px] ${
+                viewMode === 'desktop' ? 'bg-info/20 text-info border-info font-bold' : 'bg-background border-border text-secondary'
               }`}
             >
               <Monitor className="w-3.5 h-3.5" />
@@ -145,8 +145,8 @@ export const VpsHealthMatrix: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('mobile')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                viewMode === 'mobile' ? 'bg-info/20 text-info border-info' : 'bg-background border-border text-secondary'
+              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors min-h-[44px] ${
+                viewMode === 'mobile' ? 'bg-info/20 text-info border-info font-bold' : 'bg-background border-border text-secondary'
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -156,7 +156,7 @@ export const VpsHealthMatrix: React.FC = () => {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="mt-6 pt-6 border-t border-border flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-secondary" />
             <input
@@ -164,18 +164,18 @@ export const VpsHealthMatrix: React.FC = () => {
               placeholder="Search by alias or IP..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-secondary focus:outline-none focus:border-info"
+              className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-secondary focus:outline-none focus:border-info min-h-[40px]"
             />
           </div>
 
-          <div className="flex space-x-2 w-full md:w-auto">
+          <div className="flex overflow-x-auto space-x-1.5 w-full md:w-auto pb-1 scrollbar-none">
             {(['all', 'critical', 'warning', 'nominal'] as const).map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize border transition-colors ${
+                className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-semibold capitalize border transition-colors shrink-0 ${
                   filterStatus === st
-                    ? 'bg-elevated text-white border-border'
+                    ? 'bg-elevated text-white border-border font-bold'
                     : 'bg-transparent text-secondary border-transparent hover:text-white'
                 }`}
               >
