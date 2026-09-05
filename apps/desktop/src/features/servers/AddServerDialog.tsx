@@ -111,7 +111,7 @@ export const AddServerDialog: React.FC<Props> = ({ isOpen, onClose, onSave }) =>
               <label className="block text-secondary font-medium mb-1.5">Hostname / IPv4</label>
               <input
                 type="text"
-                placeholder="e.g. 159.69.142.88 or vps.example.com"
+                placeholder="e.g. 203.0.113.10 or vps.example.com"
                 value={hostname}
                 onChange={(e) => setHostname(e.target.value)}
                 required
