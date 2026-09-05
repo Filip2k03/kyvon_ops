@@ -13,6 +13,7 @@ const navItems = [
   { path: '/servers', icon: Server, label: 'Servers' },
   { path: '/clients', icon: Briefcase, label: 'Client Workspaces' },
   { path: '/vps-matrix', icon: Monitor, label: 'VPS Health Matrix' },
+  { path: '/twin', icon: Network, label: 'Digital Twin & Risk' },
   { path: '/pairing', icon: QrCode, label: 'QR Device Pairing & 2FA' },
   { path: '/cloudflare', icon: Globe, label: 'Cloudflare & Ingress' },
   { path: '/gemini', icon: Sparkles, label: 'Gemini 3.8 UI/UX Studio' },

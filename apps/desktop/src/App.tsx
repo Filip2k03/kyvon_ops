@@ -23,6 +23,7 @@ import { DevicePairingCenter } from './features/security/DevicePairingCenter';
 import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManager';
 import { MobileCompanionView } from './features/mobile/MobileCompanionView';
 import { PromotionsHub } from './features/promotions/PromotionsHub';
+import { DigitalTwinExplorer } from './features/twin/DigitalTwinExplorer';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/servers/:id" element={<ServerDetail />} />
         <Route path="/clients" element={<ClientWorkspaceManager />} />
         <Route path="/vps-matrix" element={<VpsHealthMatrix />} />
+        <Route path="/twin" element={<DigitalTwinExplorer />} />
         <Route path="/pairing" element={<DevicePairingCenter />} />
         <Route path="/cloudflare" element={<CloudflareManager />} />
         <Route path="/gemini" element={<GeminiOperations />} />
