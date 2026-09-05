@@ -1331,8 +1331,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "kyvon-desktop"
+name = "kyvon-diagnostics"
 version = "0.1.0"
+dependencies = [
+ "kyvon-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "kyvon-mcp"
+version = "0.1.0"
+dependencies = [
+ "kyvon-core",
+ "kyvon-policy",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "kyvon-policy"
+version = "0.1.0"
+dependencies = [
+ "kyvon-core",
+ "kyvon-diagnostics",
+ "kyvon-security",
+ "kyvon-topology",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
 
 [[package]]
 name = "kyvon-security"
@@ -1381,6 +1412,16 @@ dependencies = [
  "kyvon-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "kyvon-topology"
+version = "0.1.0"
+dependencies = [
+ "kyvon-core",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

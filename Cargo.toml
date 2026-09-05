@@ -6,7 +6,11 @@ members = [
     "crates/kyvon-telemetry",
     "crates/kyvon-storage",
     "crates/kyvon-ssh",
-    "apps/desktop/src-tauri",
+    "crates/kyvon-topology",
+    "crates/kyvon-diagnostics",
+    "crates/kyvon-policy",
+    "apps/mcp",
+    # "apps/desktop/src-tauri",
 ]
 
 [workspace.package]
@@ -21,6 +25,9 @@ kyvon-security = { path = "crates/kyvon-security" }
 kyvon-telemetry = { path = "crates/kyvon-telemetry" }
 kyvon-storage = { path = "crates/kyvon-storage" }
 kyvon-ssh = { path = "crates/kyvon-ssh" }
+kyvon-topology = { path = "crates/kyvon-topology" }
+kyvon-diagnostics = { path = "crates/kyvon-diagnostics" }
+kyvon-policy = { path = "crates/kyvon-policy" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

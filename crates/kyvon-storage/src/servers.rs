@@ -62,7 +62,10 @@ impl ServerRepo {
         .execute(self.db.pool())
         .await
         .map_err(|e| match &e {
-            sqlx::Error::Database(dbe) if dbe.message().contains("idx_servers_alias") => {
+            sqlx::Error::Database(dbe)
+                if dbe.message().contains("servers.alias")
+                    || dbe.message().contains("idx_servers_alias") =>
+            {
                 KyvonError::Invalid(format!(
                     "another server is already named `{}` — names must be unique",
                     profile.alias

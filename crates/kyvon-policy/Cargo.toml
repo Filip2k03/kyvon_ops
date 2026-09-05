@@ -1,0 +1,15 @@
+[package]
+name = "kyvon-policy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kyvon-core = { workspace = true }
+kyvon-security = { workspace = true }
+kyvon-topology = { workspace = true }
+kyvon-diagnostics = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }

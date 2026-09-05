@@ -6,22 +6,34 @@
 //! in sync by `kyvon-core`'s schema test (see `tests/schema.rs`).
 
 pub mod capability;
+pub mod deployment;
+pub mod diagnostics;
+pub mod digital_twin;
 pub mod error;
 pub mod event;
 pub mod host;
+pub mod incident;
 pub mod inventory;
+pub mod mcp;
 pub mod redact;
 pub mod risk;
 pub mod telemetry;
+pub mod topology;
 
 pub use capability::{caps, Capabilities, CapabilityProbe, CloudHint, Confidence, HostFacts};
+pub use deployment::*;
+pub use diagnostics::*;
+pub use digital_twin::*;
 pub use error::{KyvonError, Result};
 pub use event::KyvonEvent;
 pub use host::{HostKeyPrompt, KnownHost};
+pub use incident::*;
 pub use inventory::{AuthMethod, ConnectionState, ServerProfile, ServerStatus};
+pub use mcp::*;
 pub use redact::redact;
 pub use risk::{RiskAssessment, RiskTier};
 pub use telemetry::*;
+pub use topology::*;
 
 /// Version of the desktop <-> agent telemetry protocol.
 ///
