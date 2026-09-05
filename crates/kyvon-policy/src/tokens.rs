@@ -19,7 +19,7 @@ impl TokenAuthority {
     pub fn issue_token(&self, server_id: &str, scope: &str) -> EphemeralToken {
         let token_id = format!("kyvon_tok_{}", Uuid::new_v4().simple());
         let now = kyvon_core::now_ms();
-        let expires_at_ms = now + (self.ttl_seconds * 1000);
+        let expires_at_ms = now.saturating_add(self.ttl_seconds.max(0).saturating_mul(1000));
 
         let token = EphemeralToken {
             token_id: token_id.clone(),
@@ -67,6 +67,26 @@ impl TokenAuthority {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expired_tokens_and_wrong_targets_are_denied() {
+        for ttl in [0, -1, i64::MIN] {
+            let auth = TokenAuthority::new(ttl);
+            let token = auth.issue_token("prod-01", "restart_nginx");
+            assert!(auth
+                .verify_and_consume(&token.token_id, "prod-01", "restart_nginx")
+                .is_err());
+        }
+        let auth = TokenAuthority::new(60);
+        let token = auth.issue_token("prod-01", "restart_nginx");
+        assert!(auth
+            .verify_and_consume(&token.token_id, "prod-02", "restart_nginx")
+            .is_err());
+        let token = auth.issue_token("prod-01", "restart_nginx");
+        assert!(auth
+            .verify_and_consume(&token.token_id, "prod-01", "deploy")
+            .is_err());
+    }
 
     #[test]
     fn issues_and_verifies_ephemeral_token() {

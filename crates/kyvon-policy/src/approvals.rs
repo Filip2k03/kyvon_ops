@@ -4,8 +4,32 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
 
+const APPROVAL_TTL_MS: i64 = 60_000;
+
+/// What an actor is asking to do, as one named value.
+///
+/// The fields are passed by name rather than position deliberately: four of
+/// them are `&str`, and this is the gate that decides whether a write reaches
+/// a host. A transposed `server_id` and `actor` would silently attribute an
+/// operation to the wrong target, which no type check would catch.
+pub struct ApprovalProposal<'a> {
+    pub server_id: &'a str,
+    pub actor: &'a str,
+    pub tool_name: &'a str,
+    pub summary: &'a str,
+    pub risk_tier: RiskTier,
+    pub commands: Vec<String>,
+    pub expected_impact: &'a str,
+}
+
 pub struct ApprovalGate {
     pending: Mutex<HashMap<String, McpApprovalRequest>>,
+}
+
+impl Default for ApprovalGate {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ApprovalGate {
@@ -46,16 +70,17 @@ impl ApprovalGate {
         }
     }
 
-    pub fn create_request(
-        &self,
-        server_id: &str,
-        actor: &str,
-        tool_name: &str,
-        summary: &str,
-        risk_tier: RiskTier,
-        commands: Vec<String>,
-        expected_impact: &str,
-    ) -> McpApprovalRequest {
+    pub fn create_request(&self, proposal: ApprovalProposal<'_>) -> McpApprovalRequest {
+        let ApprovalProposal {
+            server_id,
+            actor,
+            tool_name,
+            summary,
+            risk_tier,
+            commands,
+            expected_impact,
+        } = proposal;
+
         let request_id = format!("req_{}", Uuid::new_v4().simple());
         let requires_second_confirmation = risk_tier == RiskTier::Critical;
         let requires_backup_verification = risk_tier == RiskTier::Critical
@@ -85,7 +110,10 @@ impl ApprovalGate {
     pub fn resolve_request(&self, request_id: &str, approve: bool) -> Option<McpApprovalRequest> {
         let mut lock = self.pending.lock().unwrap();
         if let Some(mut req) = lock.remove(request_id) {
-            req.status = if approve {
+            let age = kyvon_core::now_ms().checked_sub(req.created_at_ms);
+            req.status = if !age.is_some_and(|age| (0..APPROVAL_TTL_MS).contains(&age)) {
+                ApprovalStatus::Expired
+            } else if approve {
                 ApprovalStatus::Approved
             } else {
                 ApprovalStatus::Rejected
@@ -97,7 +125,12 @@ impl ApprovalGate {
     }
 
     pub fn get_pending(&self) -> Vec<McpApprovalRequest> {
-        let lock = self.pending.lock().unwrap();
+        let mut lock = self.pending.lock().unwrap();
+        let now = kyvon_core::now_ms();
+        lock.retain(|_, req| {
+            now.checked_sub(req.created_at_ms)
+                .is_some_and(|age| (0..APPROVAL_TTL_MS).contains(&age))
+        });
         lock.values().cloned().collect()
     }
 }
@@ -130,20 +163,48 @@ mod tests {
         let risk = ApprovalGate::assess_operation_risk("kyvon_deploy", Some("production"));
         assert_eq!(risk, RiskTier::High);
 
-        let req = gate.create_request(
-            "prod-01",
-            "Claude Code",
-            "kyvon_deploy",
-            "Deploy shop-api v1.8.3",
-            risk,
-            vec!["git pull".into(), "docker compose up -d".into()],
-            "Zero downtime rolling restart",
-        );
+        let req = gate.create_request(ApprovalProposal {
+            server_id: "prod-01",
+            actor: "Claude Opus",
+            tool_name: "kyvon_deploy",
+            summary: "Deploy shop-api v1.8.3",
+            risk_tier: risk,
+            commands: vec!["git pull".into(), "docker compose up -d".into()],
+            expected_impact: "Zero downtime rolling restart",
+        });
 
         assert_eq!(req.status, ApprovalStatus::Pending);
         assert!(req.requires_backup_verification);
 
         let resolved = gate.resolve_request(&req.request_id, true).unwrap();
         assert_eq!(resolved.status, ApprovalStatus::Approved);
+        assert!(gate.resolve_request(&req.request_id, true).is_none());
+    }
+
+    #[test]
+    fn expired_or_future_dated_approvals_cannot_authorize_a_write() {
+        let gate = ApprovalGate::new();
+        for created_at in [kyvon_core::now_ms() - APPROVAL_TTL_MS, i64::MAX] {
+            let req = gate.create_request(ApprovalProposal {
+                server_id: "prod-01",
+                actor: "Claude Opus",
+                tool_name: "kyvon_reload_nginx",
+                summary: "Reload nginx",
+                risk_tier: RiskTier::Low,
+                commands: vec![],
+                expected_impact: "Reload",
+            });
+            gate.pending
+                .lock()
+                .unwrap()
+                .get_mut(&req.request_id)
+                .unwrap()
+                .created_at_ms = created_at;
+            assert_eq!(
+                gate.resolve_request(&req.request_id, true).unwrap().status,
+                ApprovalStatus::Expired
+            );
+            assert!(gate.resolve_request(&req.request_id, true).is_none());
+        }
     }
 }

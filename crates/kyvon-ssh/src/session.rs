@@ -173,7 +173,8 @@ impl SshSession {
         while let Some(msg) = channel.wait().await {
             match msg {
                 ChannelMsg::Data { data } => append_capped(&mut stdout, &data, &mut truncated),
-                ChannelMsg::ExtendedData { data, ext } if ext == 1 => {
+                // ext 1 is stderr; SSH defines no other extended data type.
+                ChannelMsg::ExtendedData { data, ext: 1 } => {
                     append_capped(&mut stderr, &data, &mut truncated)
                 }
                 ChannelMsg::ExitStatus { exit_status: s } => exit_status = Some(s),
