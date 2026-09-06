@@ -59,7 +59,7 @@ jobs:
           cd apps/desktop
           bun install --frozen-lockfile
           bun run build
-          bun test tests/public-website.test.tsx
+          bun test tests/
 
   build-agent-matrix:
     name: Build Static Musl Agents
@@ -101,29 +101,28 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            target: universal-apple-darwin
+            args: --target aarch64-apple-darwin
           - platform: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
+            args: --target x86_64-unknown-linux-gnu
           - platform: windows-latest
-            target: x86_64-pc-windows-msvc
+            args: --target x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || 'x86_64-unknown-linux-gnu' }}
 
       - name: Install Linux Build Toolchain
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libdbus-1-dev libssl-dev libglib2.0-dev libgtk-3-dev \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Download Staged Agent Binaries
         if: needs.detect-agent.outputs.present == 'true'
@@ -132,9 +131,9 @@ jobs:
           path: apps/desktop/src-tauri/binaries/
 
       - name: Install Desktop Dependencies
-        run: cd apps/desktop && bun install
+        run: cd apps/desktop && bun install --frozen-lockfile
 
-      - name: Build and Sign Desktop Bundle
+      - name: Build Desktop Bundle
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -148,48 +147,58 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: ./apps/desktop
+          args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: 'KyvonOPS ${{ github.ref_name }}'
-          releaseDraft: false
-          prerelease: false
+          releaseDraft: true
+          prerelease: true
 
-      - name: Stage bundle files for checksum publication
+      - name: Upload installer files
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-bundle-${{ matrix.target }}
-          path: apps/desktop/src-tauri/target/release/bundle
+          name: desktop-${{ matrix.platform }}
           if-no-files-found: error
+          path: |
+            apps/desktop/src-tauri/target/**/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/**/bundle/macos/*.app
+            apps/desktop/src-tauri/target/**/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/**/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/**/bundle/deb/*.deb
 
-  publish-checksums:
-    name: Publish SHA256SUMS
+  checksums:
+    name: SHA-256 manifests
     needs: build-desktop-apps
     if: needs.build-desktop-apps.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download desktop bundles
+      - name: Download installer artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: desktop-bundle-*
-          path: artifacts
+          pattern: desktop-*
+          path: dist
           merge-multiple: true
-
-      - name: Generate checksum manifest
-        shell: bash
+      - name: Generate and verify SHA256SUMS
         run: |
           set -euo pipefail
-          : > SHA256SUMS
-          while IFS= read -r -d '' file; do
+          : > SHA256SUMS.txt
+          find dist -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -print0 | sort -z | while IFS= read -r -d '' file; do
             name="$(basename "$file")"
-            sha256sum "$file" | awk -v name="$name" '{print $1 "  " name}' >> SHA256SUMS
-          done < <(find artifacts -type f \( \
-            -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.appimage' \
-            -o -name '*.AppImage' -o -name '*.deb' -o -name '*.sig' -o -name '*.tar.gz' \
-          \) -print0 | sort -z)
-          test -s SHA256SUMS
-          sort -u SHA256SUMS -o SHA256SUMS
-          sha256sum -c SHA256SUMS --ignore-missing
-
-      - name: Upload SHA256SUMS to the GitHub release
+            sha256sum "$file" | awk -v name="$name" '{print $1 "  " name}'
+          done | sort -u > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
+          while read -r digest name; do
+            file="$(find dist -type f -name "$name" -print -quit)"
+            test -n "$file"
+            printf '%s  %s\n' "$digest" "$file"
+            printf '%s  %s\n' "$digest" "$file" | sha256sum -c -
+          done < SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SHA256SUMS
+          path: SHA256SUMS.txt
+      - name: Attach checksums to the draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${GITHUB_REF_NAME}" SHA256SUMS --clobber
+        run: gh release upload "${GITHUB_REF_NAME}" SHA256SUMS.txt --repo "${GITHUB_REPOSITORY}" --clobber
