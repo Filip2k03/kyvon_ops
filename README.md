@@ -37,6 +37,11 @@ The desktop remains useful as a local control point when hosted services are
 unavailable. The public website never asks for SSH credentials and is not a
 hosted control plane.
 
+The desktop client starts with an empty **My VPS** inventory. Nothing is seeded:
+connect a VPS, verify its host fingerprint, and run discovery before any host
+facts or topology appear. See [`docs/V4.1_CLIENT_ONLY.md`](docs/V4.1_CLIENT_ONLY.md)
+for the client-only behavior contract.
+
 ## Features
 
 - SSH server management with host-key verification.

@@ -16,11 +16,9 @@ import { FileManager } from './features/files/FileManager';
 import { NotesEditor } from './features/notes/NotesEditor';
 import { CloudflareManager } from './features/cloudflare/CloudflareManager';
 import { GeminiOperations } from './features/gemini/GeminiOperations';
-import { MobileBuilder } from './features/mobile/MobileBuilder';
 import { DownloadPortal } from './features/downloads/DownloadPortal';
 import { VpsHealthMatrix } from './features/servers/VpsHealthMatrix';
 import { DevicePairingCenter } from './features/security/DevicePairingCenter';
-import { ClientWorkspaceManager } from './features/clients/ClientWorkspaceManager';
 import { MobileCompanionView } from './features/mobile/MobileCompanionView';
 import { PromotionsHub } from './features/promotions/PromotionsHub';
 import { DigitalTwinExplorer } from './features/twin/DigitalTwinExplorer';
@@ -34,13 +32,11 @@ export default function DesktopApp() {
         <Route path="/command-center" element={<CommandCenter />} />
         <Route path="/servers" element={<ServerList />} />
         <Route path="/servers/:id" element={<ServerDetail />} />
-        <Route path="/clients" element={<ClientWorkspaceManager />} />
         <Route path="/vps-matrix" element={<VpsHealthMatrix />} />
         <Route path="/twin" element={<DigitalTwinExplorer />} />
         <Route path="/pairing" element={<DevicePairingCenter />} />
         <Route path="/cloudflare" element={<CloudflareManager />} />
         <Route path="/gemini" element={<GeminiOperations />} />
-        <Route path="/mobile" element={<MobileBuilder />} />
         <Route path="/terminal" element={<TerminalView />} />
         <Route path="/processes" element={<ProcessExplorer />} />
         <Route path="/services" element={<ServiceManager />} />

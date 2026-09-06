@@ -173,7 +173,6 @@ export function AddServerDialog({ isOpen, onClose, onSave }: Props) {
               <option value="development">Development</option>
               <option value="staging">Staging</option>
               <option value="production">Production</option>
-              <option value="client-work">Client workspace</option>
             </select>
           </label>
           <label className="block">
