@@ -10,6 +10,8 @@ The public website provides product information, getting-started guidance, and l
 
 The installed Tauri application loads the operational workspace separately. Each user should connect their own servers from their own machine. No maintainer account, shared server inventory, or mandatory hosted KyvonOPS control plane belongs in that flow. See [the website/application boundary](docs/PUBLIC_WEBSITE.md).
 
+For the controlled VPN-based remote deployment and installation verification sequence, use the [deployment test plan](docs/DEPLOYMENT_TEST_PLAN.md). It keeps operator VPN and SSH credentials outside this repository.
+
 ## Installation and availability
 
 Use only artifacts actually published in a release. Review its operating-system requirements, checksums, signing information, and known limitations. The website does not fabricate installer URLs or imply that a package exists for every platform.

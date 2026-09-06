@@ -11,6 +11,7 @@ APP_DIR="/var/www/kyvonops"
 NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
 SERVICE_FILE="/etc/systemd/system/kyvonops-web.service"
 LOCAL_PORT=8080
+BUILD_ON_HOST="${BUILD_ON_HOST:-0}"
 
 echo "================================================================================"
 echo "          KyvonOPS V3.0 Host Deployment — ${DOMAIN}"
@@ -18,8 +19,10 @@ echo "==========================================================================
 
 # Step 1: Preflight Environment Checks
 echo "==> [1/6] Running Infrastructure Preflight Checks..."
-command -v bun >/dev/null 2>&1 || { echo "ERROR: bun is required but not installed."; exit 1; }
-command -v git >/dev/null 2>&1 || { echo "ERROR: git is required but not installed."; exit 1; }
+if [ "${BUILD_ON_HOST}" = "1" ]; then
+    command -v bun >/dev/null 2>&1 || { echo "ERROR: bun is required when BUILD_ON_HOST=1."; exit 1; }
+    command -v git >/dev/null 2>&1 || { echo "ERROR: git is required when BUILD_ON_HOST=1."; exit 1; }
+fi
 
 # Check available disk headroom
 AVAILABLE_KB=$(df / | tail -1 | awk '{print $4}')
@@ -31,10 +34,18 @@ echo "    ✓ Disk space headroom safe (${AVAILABLE_KB} KB available)"
 
 # Step 2: Build Web Application
 echo "==> [2/6] Building Production Web & Companion Bundles..."
-cd apps/desktop
-bun install --frozen-lockfile
-bun run build
-cd ../..
+if [ "${BUILD_ON_HOST}" = "1" ]; then
+    cd apps/desktop
+    bun install --frozen-lockfile
+    bun run build
+    cd ../..
+else
+    test -f apps/desktop/dist/index.html || {
+        echo "ERROR: apps/desktop/dist/index.html is missing. Build locally or set BUILD_ON_HOST=1."
+        exit 1
+    }
+    echo "    Using prebuilt local distribution; no build toolchain required on the host."
+fi
 
 # Step 3: Synchronize Web Distribution Artifacts
 echo "==> [3/6] Deploying Static Distribution to ${APP_DIR}..."
