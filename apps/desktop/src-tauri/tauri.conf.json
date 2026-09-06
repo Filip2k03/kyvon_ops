@@ -56,7 +56,7 @@
     "windows": {
       "nsis": {
         "languages": [
-          "en-US"
+          "English"
         ],
         "displayLanguageSelector": false
       }

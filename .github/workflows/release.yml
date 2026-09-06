@@ -143,10 +143,10 @@ jobs:
           name: desktop-${{ matrix.platform }}
           if-no-files-found: error
           path: |
-            apps/desktop/src-tauri/target/**/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/**/bundle/nsis/*.exe
-            apps/desktop/src-tauri/target/**/bundle/appimage/*.AppImage
-            apps/desktop/src-tauri/target/**/bundle/deb/*.deb
+            target/**/bundle/dmg/*.dmg
+            target/**/bundle/nsis/*.exe
+            target/**/bundle/appimage/*.AppImage
+            target/**/bundle/deb/*.deb
 
   checksums:
     name: SHA-256 manifests
