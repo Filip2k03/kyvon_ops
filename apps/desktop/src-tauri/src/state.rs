@@ -22,6 +22,14 @@ pub struct SessionManager {
     sessions: HashMap<String, Arc<SshSession>>,
 }
 
+// `remove` is used by `delete_server`; the rest of this surface is what
+// `connect` will use once the credential resolver and host-key prompt are
+// wired. Kept rather than deleted so the intended contract stays visible, and
+// marked explicitly so it does not read as an oversight.
+#[allow(
+    dead_code,
+    reason = "session lifecycle API awaiting the connect command"
+)]
 impl SessionManager {
     pub fn new() -> Self {
         Self::default()

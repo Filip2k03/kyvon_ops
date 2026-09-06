@@ -24,11 +24,17 @@ pub fn sanitize_json_value(val: &Value) -> Value {
             for (k, v) in map {
                 let k_lower = k.to_lowercase();
                 if k_lower.contains("password")
+                    || k_lower.contains("passwd")
                     || k_lower.contains("secret")
                     || k_lower.contains("token")
                     || k_lower.contains("private_key")
+                    || k_lower.contains("privatekey")
                     || k_lower.contains("passphrase")
                     || k_lower.contains("auth_key")
+                    || k_lower.contains("api_key")
+                    || k_lower.contains("apikey")
+                    || k_lower.contains("authorization")
+                    || k_lower.contains("cookie")
                 {
                     new_map.insert(k.clone(), Value::String(REDACTED_PLACEHOLDER.into()));
                 } else {
@@ -62,5 +68,24 @@ mod tests {
         assert_eq!(sanitized["password"], REDACTED_PLACEHOLDER);
         assert_eq!(sanitized["config"]["api_token"], REDACTED_PLACEHOLDER);
         assert_eq!(sanitized["config"]["normal"], "hello world");
+    }
+
+    #[test]
+    fn redacts_credentials_by_field_even_when_values_have_no_recognizable_prefix() {
+        for name in [
+            "API_KEY",
+            "apiKey",
+            "Authorization",
+            "Proxy-Authorization",
+            "Cookie",
+            "Set-Cookie",
+            "passwd",
+            "privateKey",
+        ] {
+            let input = json!({"nested": [{name: "opaque-credential"}], "status": "connected"});
+            let output = sanitize_json_value(&input);
+            assert!(!output.to_string().contains("opaque-credential"), "{name}");
+            assert_eq!(output["status"], "connected");
+        }
     }
 }

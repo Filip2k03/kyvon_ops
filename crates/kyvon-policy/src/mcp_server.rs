@@ -20,19 +20,47 @@ impl McpProtocolHandler {
         }
     }
 
+    /// Valid notifications have no response and must not trigger tool execution.
+    pub fn handle_message(&self, request_json: &str) -> Option<Value> {
+        if let Ok(request) = serde_json::from_str::<Value>(request_json) {
+            if request.is_object()
+                && request["jsonrpc"] == "2.0"
+                && request["method"].is_string()
+                && request.get("id").is_none()
+                && request.get("params").is_none_or(Value::is_object)
+            {
+                return None;
+            }
+        }
+        Some(self.handle_rpc(request_json))
+    }
+
     pub fn handle_rpc(&self, request_json: &str) -> Value {
         let req: Value = match serde_json::from_str(request_json) {
             Ok(v) => v,
-            Err(e) => {
+            Err(_) => {
                 return json!({
                     "jsonrpc": "2.0",
                     "id": Value::Null,
-                    "error": { "code": -32700, "message": format!("Parse error: {}", e) }
+                    "error": { "code": -32700, "message": "Invalid JSON" }
                 });
             }
         };
 
+        if !req.is_object()
+            || req["jsonrpc"] != "2.0"
+            || !req["method"].is_string()
+            || !req
+                .get("id")
+                .is_some_and(|id| id.is_string() || id.is_number() || id.is_null())
+        {
+            return json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32600, "message": "Invalid request"}});
+        }
+
         let id = req.get("id").cloned().unwrap_or(Value::Null);
+        if req.get("params").is_some_and(|params| !params.is_object()) {
+            return json!({"jsonrpc": "2.0", "id": id, "error": {"code": -32602, "message": "Parameters must be an object"}});
+        }
         let method = req.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = req.get("params").cloned().unwrap_or(json!({}));
 
@@ -40,13 +68,11 @@ impl McpProtocolHandler {
             "initialize" => json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
-                    "tools": { "listChanged": true },
-                    "resources": { "subscribe": true, "listChanged": true },
-                    "prompts": { "listChanged": true }
+                    "tools": {}
                 },
                 "serverInfo": {
                     "name": "kyvonops-mcp",
-                    "version": "2.0.0"
+                    "version": env!("CARGO_PKG_VERSION")
                 }
             }),
             "tools/list" => {
@@ -75,43 +101,14 @@ impl McpProtocolHandler {
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
                 self.dispatch_tool_call(tool_name, &args)
             }
-            "resources/list" => json!({
-                "resources": [
-                    {
-                        "uri": "kyvon://servers",
-                        "name": "Monitored Servers Inventory",
-                        "mimeType": "application/json"
-                    },
-                    {
-                        "uri": "kyvon://active-incidents",
-                        "name": "Active Fleet Incidents",
-                        "mimeType": "application/json"
-                    }
-                ]
-            }),
-            "prompts/list" => json!({
-                "prompts": [
-                    {
-                        "name": "kyvon-investigate-slow-site",
-                        "description": "Systematic diagnostic workflow investigating DNS, TLS, reverse proxy, and backend database bottlenecks",
-                        "arguments": [
-                            { "name": "domain", "description": "Website or API domain", "required": true }
-                        ]
-                    },
-                    {
-                        "name": "kyvon-outage-triage",
-                        "description": "Evaluate capacity headroom, container crashes, and recent deployment causality for a troubled VPS",
-                        "arguments": [
-                            { "name": "server_id", "description": "Target server id", "required": true }
-                        ]
-                    }
-                ]
-            }),
+            "resources/list" => json!({"resources": []}),
+            "prompts/list" => json!({"prompts": []}),
+            "ping" => json!({}),
             _ => {
                 return json!({
                     "jsonrpc": "2.0",
                     "id": id,
-                    "error": { "code": -32601, "message": format!("Method '{}' not found", method) }
+                    "error": { "code": -32601, "message": "Method not found" }
                 });
             }
         };
@@ -178,6 +175,34 @@ impl McpProtocolHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn notifications_are_silent_and_cannot_create_operations() {
+        let handler = McpProtocolHandler::new(McpRole::Administrator);
+        for method in ["notifications/initialized", "tools/call", "unknown"] {
+            assert!(handler
+                .handle_message(&json!({"jsonrpc": "2.0", "method": method}).to_string())
+                .is_none());
+        }
+        assert!(handler.approval_gate.get_pending().is_empty());
+    }
+
+    #[test]
+    fn rejects_invalid_envelopes_without_echoing_parameters() {
+        let handler = McpProtocolHandler::new(McpRole::Observer);
+        for request in [
+            json!([]),
+            json!({"method": "tools/list", "id": 1}),
+            json!({"jsonrpc": "2.0", "method": "tools/list", "id": {"secret": "opaque"}}),
+        ] {
+            let response = handler.handle_rpc(&request.to_string());
+            assert_eq!(response["error"]["code"], -32600);
+            assert!(!response.to_string().contains("opaque"));
+        }
+        let response =
+            handler.handle_rpc(r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":[]}"#);
+        assert_eq!(response["error"]["code"], -32602);
+    }
 
     #[test]
     fn responds_to_initialize_and_tools_list() {

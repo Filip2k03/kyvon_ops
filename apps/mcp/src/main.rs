@@ -18,7 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue;
         }
 
-        let response = handler.handle_rpc(trimmed);
+        let Some(response) = handler.handle_message(trimmed) else {
+            continue;
+        };
         let response_str = serde_json::to_string(&response)?;
 
         writeln!(stdout, "{}", response_str)?;
