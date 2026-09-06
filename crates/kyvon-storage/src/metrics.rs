@@ -115,6 +115,44 @@ impl MetricRepo {
     }
 
     /// Which metrics this server has any history for.
+    /// The newest recorded sample of every metric for a server, whatever its
+    /// age, as `(metric, ts, value)`.
+    ///
+    /// One statement rather than one per metric: listing the distinct keys and
+    /// then querying each cost a round trip per key, so a collector emitting
+    /// sixty of them made a single health call sixty-one sequential queries.
+    ///
+    /// Age is not filtered here. "Nothing was ever collected" and "nothing was
+    /// collected recently" are different facts, and a caller cannot recover the
+    /// distinction once this has discarded it — so the timestamp is returned
+    /// and the judgement left to whoever is answering the question.
+    pub async fn latest_per_metric(
+        &self,
+        server_id: &str,
+    ) -> Result<Vec<(String, TimestampMs, f64)>> {
+        let rows = sqlx::query(
+            "SELECT metric, MAX(ts) AS ts, value
+             FROM metric_samples
+             WHERE server_id = ?1
+             GROUP BY metric
+             ORDER BY metric",
+        )
+        .bind(server_id)
+        .fetch_all(self.db.pool())
+        .await
+        .map_err(storage_err)?;
+
+        rows.into_iter()
+            .map(|r| {
+                Ok((
+                    r.try_get("metric").map_err(storage_err)?,
+                    r.try_get("ts").map_err(storage_err)?,
+                    r.try_get("value").map_err(storage_err)?,
+                ))
+            })
+            .collect()
+    }
+
     pub async fn known_metrics(&self, server_id: &str) -> Result<Vec<String>> {
         let rows = sqlx::query(
             "SELECT DISTINCT metric FROM metric_samples WHERE server_id = ?1 ORDER BY metric",

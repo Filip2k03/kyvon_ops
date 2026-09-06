@@ -43,9 +43,16 @@ pub trait InfrastructureBackend: Send + Sync {
     /// should be told it does not exist, not handed a failure it might retry.
     async fn get_server(&self, server_id: &str) -> Result<Option<ServerProfile>>;
 
-    /// The most recent recorded value of each known metric for a server.
+    /// The most recent recorded value of each known metric for a server,
+    /// regardless of age.
     ///
-    /// An empty result means nothing has ever been collected for this host,
-    /// which the gateway reports as such rather than as zeroes.
+    /// Age is deliberately not filtered here. An empty result must mean
+    /// "nothing was ever collected for this host" and nothing else, because
+    /// that is a different statement from "nothing recent", and the caller
+    /// cannot recover the distinction once it has been thrown away. Applying a
+    /// freshness window in the backend made the gateway assert that a host had
+    /// never been measured when its collector had merely stopped twenty
+    /// minutes ago — the precise kind of confident falsehood §108 exists to
+    /// prevent. The gateway judges staleness from `recorded_at`.
     async fn latest_metrics(&self, server_id: &str) -> Result<Vec<MetricReading>>;
 }

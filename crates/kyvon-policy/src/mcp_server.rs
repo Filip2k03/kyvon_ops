@@ -6,6 +6,11 @@ use crate::redactor::sanitize_json_value;
 use crate::tokens::TokenAuthority;
 use crate::tools::get_kyvon_mcp_tools;
 use kyvon_core::mcp::McpRole;
+
+/// How old the newest sample may be before health readings are reported as
+/// stale. Generous next to the collector's one-second interval, so a brief
+/// hiccup is not announced as a stopped collector.
+const STALE_AFTER_MS: i64 = 5 * 60 * 1000;
 use serde_json::{json, Value};
 
 pub struct McpProtocolHandler {
@@ -116,7 +121,16 @@ impl McpProtocolHandler {
             "tools/call" => {
                 let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
-                self.dispatch_tool_call(tool_name, &args).await
+                {
+                    // Returned directly, without the sanitize below. A tool's
+                    // payload is redacted structurally in `tool_ok` and only
+                    // then serialized; running the *text* redactor across that
+                    // serialized JSON masks from an opening brace to end of
+                    // line, which corrupts the document rather than protecting
+                    // anything — and left every response unparseable.
+                    let result = self.dispatch_tool_call(tool_name, &args).await;
+                    return json!({ "jsonrpc": "2.0", "id": id, "result": result });
+                }
             }
             "resources/list" => json!({"resources": []}),
             "prompts/list" => json!({"prompts": []}),
@@ -184,13 +198,31 @@ impl McpProtocolHandler {
         let server_id = args.get("server_id").and_then(Value::as_str);
 
         match tool_name {
-            "kyvon_server_list" => match backend.list_servers().await {
-                Ok(servers) => Self::tool_ok(json!({
-                    "servers": servers,
-                    "count": servers.len(),
-                })),
-                Err(e) => Self::tool_error(&format!("Could not read the inventory: {e}")),
-            },
+            "kyvon_server_list" => {
+                let tag = args.get("tag").and_then(Value::as_str);
+                match backend.list_servers().await {
+                    Ok(servers) => {
+                        // The schema advertises this filter, so it must be
+                        // applied. Returning the whole inventory for
+                        // `{"tag":"staging"}` hands an agent production hosts
+                        // it has every reason to treat as staging — the tool
+                        // would promise a scope it does not enforce.
+                        let matched: Vec<_> = match tag {
+                            Some(t) => servers
+                                .into_iter()
+                                .filter(|s| s.tags.iter().any(|have| have == t))
+                                .collect(),
+                            None => servers,
+                        };
+                        Self::tool_ok(json!({
+                            "servers": matched,
+                            "count": matched.len(),
+                            "filtered_by_tag": tag,
+                        }))
+                    }
+                    Err(e) => Self::tool_error(&format!("Could not read the inventory: {e}")),
+                }
+            }
 
             "kyvon_server_get" => {
                 let Some(id) = server_id else {
@@ -216,32 +248,44 @@ impl McpProtocolHandler {
                     Ok(readings) if readings.is_empty() => Self::tool_ok(json!({
                         "server_id": id,
                         "measured": false,
-                        "detail": "No telemetry has been recorded for this server. \
+                        "detail": "No telemetry has ever been recorded for this server. \
                                    Health cannot be assessed, and no value is being estimated.",
                     })),
                     Ok(readings) => {
-                        // Every reading is dated. These are the last recorded
-                        // values, not live ones, and an agent reasoning about
-                        // current load must be able to see how old they are.
+                        // "Never measured" and "measured, but not lately" are
+                        // different facts about a host, and the second usually
+                        // means the collector stopped — which is itself the
+                        // useful signal. Staleness is stated, not hidden.
                         let newest = readings.iter().map(|r| r.recorded_at).max().unwrap_or(0);
+                        let age_ms = kyvon_core::now_ms().saturating_sub(newest);
+                        let stale = age_ms > STALE_AFTER_MS;
                         Self::tool_ok(json!({
                             "server_id": id,
                             "measured": true,
+                            "stale": stale,
                             "as_of_ms": newest,
-                            "age_ms": kyvon_core::now_ms().saturating_sub(newest),
+                            "age_ms": age_ms,
                             "readings": readings,
-                            "note": "Last recorded values from the local store, not a live probe.",
+                            "note": if stale {
+                                "These are the last recorded values, but the newest is older \
+                                 than the collection interval — the collector appears to have \
+                                 stopped. Do not treat them as current."
+                            } else {
+                                "Last recorded values from the local store, not a live probe."
+                            },
                         }))
                     }
                     Err(e) => Self::tool_error(&format!("Could not read metrics for `{id}`: {e}")),
                 }
             }
 
-            // Everything else needs a live session, a topology walk or an
-            // executor, none of which this trait can reach.
+            // Naming a live connection would be wrong for several of these:
+            // incidents, changes and capacity are local reads needing no host
+            // at all, and an agent told to "connect first" would reconnect and
+            // hit the same wall. What is missing is a wider backend (§118).
             _ => Self::tool_error(&format!(
-                "Unavailable: `{tool_name}` needs a live connection to the host, which this \
-                 gateway does not have. No operation was executed and no state was verified."
+                "Unavailable: `{tool_name}` is not exposed by the backend attached to this \
+                 gateway. No operation was executed and no state was verified."
             )),
         }
     }

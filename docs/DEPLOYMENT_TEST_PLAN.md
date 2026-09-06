@@ -20,10 +20,10 @@ The public bundle must contain only landing, preview, setup, and release links. 
 
 ## 2. VPN and remote preflight
 
-Connect to the approved VPN using the operator runbook in `../vpn`. Verify the expected SSH host key out of band, then run a read-only preflight against the designated test host:
+Connect to the approved VPN using the operator runbook in `../vpn`. Verify the expected SSH host key out of band, then run the repository smoke test against the designated host:
 
 ```sh
-ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <operator-user>@<test-host> 'uname -a; command -v nginx; command -v systemctl'
+SSH_HOST=<test-host> SSH_USER=<operator-user> SSH_KEY=<key-path> ./scripts/live-ssh-smoke.sh
 ```
 
 Do not use production hosts for the first installation test. Confirm free disk space, available port `8080`, and a working Nginx/systemd toolchain before deployment.

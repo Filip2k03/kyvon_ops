@@ -11,7 +11,7 @@
 
 mod storage_backend;
 
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -19,6 +19,7 @@ use kyvon_core::mcp::McpRole;
 use kyvon_policy::mcp_server::McpProtocolHandler;
 use kyvon_storage::Database;
 use storage_backend::StorageBackend;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 /// The store the desktop writes to.
 ///
@@ -33,21 +34,38 @@ fn database_path() -> Option<PathBuf> {
 }
 
 /// The platform application-data directory Tauri writes under.
+///
+/// `HOME` is read inside the arms that use it: binding it unconditionally left
+/// it dead on Windows, which `clippy -D warnings` rejects — latent today only
+/// because CI runs on Linux, while `release.yml` builds for Windows too.
 fn dirs_next() -> Option<PathBuf> {
-    let home = std::env::var_os("HOME").map(PathBuf::from);
     #[cfg(target_os = "macos")]
-    return home.map(|h| h.join("Library/Application Support/com.kyvon.ops"));
+    {
+        std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .map(|h| h.join("Library/Application Support/com.kyvon.ops"))
+    }
     #[cfg(target_os = "linux")]
-    return std::env::var_os("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .or_else(|| home.map(|h| h.join(".local/share")))
-        .map(|d| d.join("com.kyvon.ops"));
+    {
+        std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME")
+                    .map(PathBuf::from)
+                    .map(|h| h.join(".local/share"))
+            })
+            .map(|d| d.join("com.kyvon.ops"))
+    }
     #[cfg(target_os = "windows")]
-    return std::env::var_os("APPDATA")
-        .map(PathBuf::from)
-        .map(|d| d.join("com.kyvon.ops"));
+    {
+        std::env::var_os("APPDATA")
+            .map(PathBuf::from)
+            .map(|d| d.join("com.kyvon.ops"))
+    }
     #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    return home;
+    {
+        std::env::var_os("HOME").map(PathBuf::from)
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -61,7 +79,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // an empty inventory rather than no backend at all. Both are honest, but
     // "no servers yet" is the more useful truth.
     match database_path() {
-        Some(path) if path.exists() || path.parent().is_some_and(|p| p.exists()) => {
+        // An empty parent means a bare relative name like `KYVON_DB=kyvon.db`,
+        // whose directory is the working directory — `Path::new("").exists()`
+        // is false, so testing the parent alone refused a path sqlx opens fine.
+        Some(path)
+            if path.exists()
+                || path
+                    .parent()
+                    .is_none_or(|p| p.as_os_str().is_empty() || p.exists()) =>
+        {
             match Database::open(&path).await {
                 Ok(db) => {
                     eprintln!("[KYVONOPS-MCP] Reading inventory from {}", path.display());
@@ -82,11 +108,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => eprintln!("[KYVONOPS-MCP] Could not determine the application data directory."),
     }
 
-    let stdin = io::stdin();
+    // Async stdin, not `io::stdin().lock().lines()`. The blocking form parks
+    // the runtime's only thread for as long as no request arrives, which is
+    // almost always — nothing spawned could make progress between messages, so
+    // any timer or background task added here would silently never fire.
+    let mut lines = BufReader::new(tokio::io::stdin()).lines();
     let mut stdout = io::stdout();
 
-    for line_result in stdin.lock().lines() {
-        let line = line_result?;
+    while let Some(line) = lines.next_line().await? {
         let trimmed = line.trim();
         if trimmed.is_empty() {
             continue;

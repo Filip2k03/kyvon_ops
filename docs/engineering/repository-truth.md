@@ -58,6 +58,7 @@ CI runs all four on every push and is green.
 | **CI** | Works | Green. Had **never passed** before 2026-09-06 — the Rust job never installed `libdbus-1-dev` for the `keyring` crate. |
 | **Releases** | Works, unused | `release.yml` was structurally unable to produce artifacts (built a non-existent `agent/Cargo.toml`, and desktop bundles declared `needs:` on it). Fixed. **No tag has been pushed, so no release exists** — the downloads page correctly says so. |
 | **Remote deployment test** | Verified locally on VPN host | `scripts/deploy-host.sh` deployed the prebuilt static bundle without installing Bun; `/healthz`, SPA deep links, security headers, and disabled updater metadata were verified on the approved test host. |
+| **Live SSH smoke test** | Verified read-only | `scripts/live-ssh-smoke.sh` connected with strict host-key checking and verified Ubuntu 22.04, disk headroom, Nginx, systemd, `/proc` readability, and the deployed port 8080 listener. This does not replace the desktop app `SshSession` test. |
 | **Schema mirror** | Works | `kyvon-core/tests/schema.rs` fails the build when a TypeScript mirror drifts. Both directions verified by reproducing real bugs. |
 
 ## Code hygiene
