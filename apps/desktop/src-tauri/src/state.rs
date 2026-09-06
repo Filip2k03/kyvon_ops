@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use kyvon_ssh::SshSession;
+use kyvon_ssh::{SshSession, TerminalHandle};
 use kyvon_storage::Database;
 use tokio::sync::Mutex;
 
@@ -61,4 +61,5 @@ pub struct AppState {
     pub sessions: Arc<Mutex<SessionManager>>,
     pub prompts: Arc<PendingPrompts>,
     pub collectors: crate::commands::telemetry::SharedCollectors,
+    pub terminals: Arc<Mutex<HashMap<String, Arc<Mutex<TerminalHandle>>>>>,
 }

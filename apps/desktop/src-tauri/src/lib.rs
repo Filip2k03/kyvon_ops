@@ -40,6 +40,7 @@ pub fn run() {
                 sessions: Arc::new(Mutex::new(SessionManager::new())),
                 collectors: Arc::new(commands::telemetry::Collectors::default()),
                 prompts: Arc::new(hostkey::PendingPrompts::default()),
+                terminals: Arc::new(Mutex::new(std::collections::HashMap::new())),
             });
             Ok(())
         })
