@@ -20,7 +20,7 @@ type HostKeyPromptPayload = {
 };
 
 /**
- * The fleet inventory, read from the local SQLite store over Tauri IPC.
+ * The user's VPS inventory, read from the local SQLite store over Tauri IPC.
  *
  * Only fields the backend actually returns are rendered. Live figures — CPU,
  * memory, SSH latency, OS facts — belong to the telemetry stream and to
@@ -121,7 +121,7 @@ export const ServerList: React.FC = () => {
     const result = await Backend.connect(id);
     if (result.state === 'ok') {
       setConnectionStates(previous => ({ ...previous, [id]: 'connected' }));
-      // Move directly into the operator workspace after the real SSH session
+      // Move directly into the VPS workspace after the real SSH session
       // is established. The server id in the URL keeps the selected host
       // stable across Command Center and per-host views.
       navigate(`/command-center?server=${encodeURIComponent(id)}`);
@@ -144,7 +144,7 @@ export const ServerList: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/80 pb-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <Server className="w-6 h-6 text-info" /> Fleet Inventory &amp; Host Nodes
+            <Server className="w-6 h-6 text-info" /> My VPS
           </h1>
           <p className="text-xs text-secondary mt-1">
             Local SQLite inventory with encrypted keychain vault credentials and multiplexed SSH transports.
@@ -179,8 +179,8 @@ export const ServerList: React.FC = () => {
       {result?.state === 'ok' && servers.length === 0 && (
         <NoDataState
           variant="empty"
-          title="No servers in this workspace yet"
-          detail="Add a host to store its connection shape locally. The password or key passphrase goes to your OS keychain, never to this database."
+            title="No VPS connected"
+            detail="Connect your first VPS to store its connection shape locally. The password or key passphrase goes to your OS keychain, never to this database."
           action={
             <button
               onClick={() => setIsAddOpen(true)}

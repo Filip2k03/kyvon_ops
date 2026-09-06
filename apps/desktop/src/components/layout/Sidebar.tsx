@@ -1,24 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Activity, Server, Terminal, Cpu, HardDrive, Shield, FileText, 
-  Settings, Network, Boxes, Zap, Globe, Sparkles, Smartphone, Download,
-  Monitor, QrCode, Briefcase, Radio, Share2, X
+  Settings, Network, Boxes, Zap, Globe, Download,
+  Monitor, QrCode, Radio, Share2, X
 } from 'lucide-react';
 import { useUiStore } from '../../stores/uiStore';
 import clsx from 'clsx';
 
 const navItems = [
-  { path: '/landing', icon: Sparkles, label: 'Landing & 3D Tour' },
   { path: '/command-center', icon: Activity, label: 'Command Center' },
   { path: '/companion', icon: Radio, label: 'Mobile Companion' },
   { path: '/servers', icon: Server, label: 'Servers' },
-  { path: '/clients', icon: Briefcase, label: 'Client Workspaces' },
   { path: '/vps-matrix', icon: Monitor, label: 'VPS Health Matrix' },
   { path: '/twin', icon: Network, label: 'Digital Twin & Risk' },
   { path: '/pairing', icon: QrCode, label: 'QR Device Pairing & 2FA' },
   { path: '/cloudflare', icon: Globe, label: 'Cloudflare & Ingress' },
-  { path: '/gemini', icon: Sparkles, label: 'Gemini 3.8 UI/UX Studio' },
-  { path: '/mobile', icon: Smartphone, label: 'Mobile (.apk / .ipa)' },
   { path: '/terminal', icon: Terminal, label: 'Terminal' },
   { path: '/docker', icon: Boxes, label: 'Docker & Compose' },
   { path: '/diagnostics', icon: Zap, label: 'Diagnostics' },

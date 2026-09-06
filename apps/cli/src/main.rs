@@ -1,54 +1,33 @@
-//! KyvonOPS V3.0 CLI (`kyvon`)
-//! Implements §102 and §103 of PROMPTS.md
+//! KyvonOPS V4.1 CLI (`kyvon`).
+//! Reports only inventory and telemetry recorded by this installation.
 
 use std::env;
-use std::io::{self, Write};
+use std::path::PathBuf;
 use std::process;
+
+use kyvon_core::{now_ms, Resolution};
+use kyvon_diagnostics::capacity::predict_capacity;
+use kyvon_diagnostics::from_history::{
+    risk_signals, trend_samples, wanted_metrics, MetricHistory, MAX_CARRY_MS,
+};
+use kyvon_diagnostics::outage_risk::calculate_outage_risk;
+use kyvon_storage::{Database, MetricRepo, ServerRepo};
 
 fn print_help() {
     println!(
-        r#"KyvonOPS V3.0 CLI — Sovereign DevOps & Infrastructure Intelligence
+        r#"KyvonOPS V4.1 CLI — local-first VPS operations
 
 USAGE:
     kyvon <COMMAND> [OPTIONS]
 
 COMMANDS:
     server list                 List all discovered and registered VPS nodes
-    server health <id>          Show deep telemetry, memory PSI, and risk score
-    server inspect <id>         Inspect Digital Twin topology and container map
-    site list                   List all monitored domains, SSL, and ingress routes
-    site inspect <domain>       Trace domain -> reverse proxy -> container -> process
-    deploy <target> <version>   Execute locked, schema-validated deployment
-    rollback <target>           Rollback to previous verified deployment state
-    incident list               List active and recent SRE incidents and MTTR
-    diagnose <target>           Perform root-cause diagnostics (server or domain)
-    mcp install                 Generate configuration for Codex Astra, Claude Opus, Agy Gemini 3.8
-    mcp doctor                  Verify MCP tool catalog, policy gates, and redactor
-    agent install <host>        Deploy lightweight static Musl probe to remote host
-    agent status <host>         Check agent daemon health and memory RSS usage
-    device list                 List paired mobile companion devices (iOS/Android)
-    device revoke <id>          Revoke mobile device pairing authorization
-    version                     Print KyvonOPS V3.0 version and build metadata
+    diagnose <server>           Outage risk and capacity forecast from recorded telemetry
+    mcp install                 Print local MCP client configuration
+    mcp doctor                  Report MCP availability for this installation
+    version                     Print KyvonOPS version and build metadata
 "#
     );
-}
-
-fn confirm_action(target: &str, action: &str, risk: &str, impact: &str) -> bool {
-    println!("\n[KYVON SAFETY GATE (§103 PROMPTS.md)]");
-    println!("Target:          {}", target);
-    println!("Action:          {}", action);
-    println!("Risk Level:      {}", risk);
-    println!("Expected Impact: {}", impact);
-    print!("\nConfirm? [y/N]: ");
-    io::stdout().flush().unwrap();
-
-    let mut input = String::new();
-    if io::stdin().read_line(&mut input).is_ok() {
-        let trimmed = input.trim().to_lowercase();
-        trimmed == "y" || trimmed == "yes"
-    } else {
-        false
-    }
 }
 
 #[tokio::main]
@@ -62,196 +41,60 @@ async fn main() {
     match args[1].as_str() {
         "server" => {
             if args.len() < 3 {
-                eprintln!("Error: 'kyvon server' requires a subcommand (list, health, inspect)");
+                eprintln!("Error: 'kyvon server' requires the list subcommand");
                 process::exit(1);
             }
             match args[2].as_str() {
-                "list" => {
-                    println!(
-                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
-                        "ALIAS", "IP ADDRESS", "STATUS", "RISK SCORE", "UPTIME"
-                    );
-                    println!("{:-<75}", "");
-                    println!(
-                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
-                        "prod-fra-01", "198.51.100.24", "NOMINAL", "32/100", "47d 8h"
-                    );
-                    println!(
-                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
-                        "staging-lon-02", "203.0.113.88", "CRITICAL", "78/100", "12d 2h"
-                    );
-                    println!(
-                        "{:<15} {:<18} {:<10} {:<12} {:<15}",
-                        "edge-sgp-03", "198.51.100.109", "WARNING", "48/100", "94d 18h"
-                    );
-                }
-                "health" => {
-                    let id = args.get(3).map(|s| s.as_str()).unwrap_or("prod-fra-01");
-                    println!("=== Node Deep Health: {} ===", id);
-                    println!("  OS:                  Ubuntu 24.04 LTS (Kernel 6.8.0)");
-                    println!("  CPU Utilization:     24.8% (Load 1m: 0.98, 4 cores)");
-                    println!("  RAM Allocated:       4.12 GB / 16.00 GB (25.7%)");
-                    println!("  Memory PSI Stall:    2.1% (Nominal, <15% threshold)");
-                    println!("  Disk Usage:          112 GB / 250 GB (44.8%)");
-                    println!("  Inodes Used:         28% (Headroom: 1.8M inodes free)");
-                    println!("  TCP Listen Drops:    0 (SYN backlog healthy)");
-                    println!("  Failed Units:        0 (systemctl nominal)");
-                    println!("  Containers:          8 running, 0 crashed");
-                    println!("  TLS Expiry:          68 days remaining (Let's Encrypt)");
-                    println!("  Outage Risk Index:   32 / 100 [LOW RISK]");
-                }
-                "inspect" => {
-                    let id = args.get(3).map(|s| s.as_str()).unwrap_or("prod-fra-01");
-                    println!("=== Digital Twin Topology: {} ===", id);
-                    println!("  [Edge Ingress]");
-                    println!("    └── Cloudflare CDN (Full Strict TLS) -> 198.51.100.24:443");
-                    println!("  [Reverse Proxy]");
-                    println!("    └── Nginx 1.26 (worker_processes: 4, keepalive: 32)");
-                    println!(
-                        "         ├── api.example.com     -> 127.0.0.1:3000 (docker: shop-api)"
-                    );
-                    println!(
-                        "         └── website.example.com -> 127.0.0.1:8080 (docker: shop-web)"
-                    );
-                    println!("  [Active Containers]");
-                    println!(
-                        "    ├── shop-api (node:20-alpine)  | CPU: 12.4% | RSS: 380MB | Health: OK"
-                    );
-                    println!("    ├── shop-web (nginx:alpine)     | CPU: 1.8%  | RSS: 45MB  | Health: OK");
-                    println!("    └── postgres-16                 | CPU: 8.2%  | RSS: 1.2GB | Health: OK");
-                }
+                "list" => match list_inventory().await {
+                    Ok(servers) if servers.is_empty() => {
+                        println!("No VPS connected in this installation.")
+                    }
+                    Ok(servers) => {
+                        println!(
+                            "{:<24} {:<30} {:<8} {:<12}",
+                            "NAME", "HOST", "PORT", "DISCOVERY"
+                        );
+                        println!("{:-<78}", "");
+                        for server in servers {
+                            println!(
+                                "{:<24} {:<30} {:<8} {:<12}",
+                                server.alias,
+                                server.hostname,
+                                server.port,
+                                if server.facts.is_some() {
+                                    "complete"
+                                } else {
+                                    "pending"
+                                }
+                            );
+                        }
+                    }
+                    Err(message) => {
+                        eprintln!("{message}");
+                        process::exit(1);
+                    }
+                },
                 cmd => {
                     eprintln!("Unknown server subcommand: '{}'", cmd);
                     process::exit(1);
                 }
             }
         }
-        "site" => {
-            if args.len() < 3 {
-                eprintln!("Error: 'kyvon site' requires a subcommand (list, inspect)");
-                process::exit(1);
-            }
-            match args[2].as_str() {
-                "list" => {
-                    println!(
-                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
-                        "DOMAIN", "TARGET VPS", "PROXY", "TLS STATUS", "LATENCY"
-                    );
-                    println!("{:-<80}", "");
-                    println!(
-                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
-                        "api.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "28ms (p95)"
-                    );
-                    println!(
-                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
-                        "website.example.com", "prod-fra-01", "CLOUDFLARE", "STRICT", "14ms (p95)"
-                    );
-                    println!(
-                        "{:<24} {:<15} {:<10} {:<12} {:<15}",
-                        "staging.example.com",
-                        "staging-lon-02",
-                        "DNS ONLY",
-                        "EXPIRED",
-                        "340ms (p95)"
-                    );
-                }
-                "inspect" => {
-                    let domain = args.get(3).map(|s| s.as_str()).unwrap_or("api.example.com");
-                    println!("=== Ingress & Resource Attribution: {} ===", domain);
-                    println!("  DNS Resolution:      172.67.182.42 (Cloudflare Anycast PoP: FRA)");
-                    println!("  TLS Handshake:       TLS 1.3 (0-RTT resumed, 12ms)");
-                    println!("  Origin Socket:       198.51.100.24:3000 (HTTP/2 keepalive)");
-                    println!("  Upstream Process:    node /app/server.js (PID 8412)");
-                    println!("  Attributed CPU:      12.4% (50.0% of host node)");
-                    println!("  Attributed RAM:      380 MB (9.2% of host node)");
-                    println!("  Recent Error Rate:   0.02% (Nominal)");
-                }
-                cmd => {
-                    eprintln!("Unknown site subcommand: '{}'", cmd);
-                    process::exit(1);
-                }
-            }
-        }
-        "deploy" => {
-            if args.len() < 4 {
-                eprintln!("Usage: kyvon deploy <target-app> <version>");
-                process::exit(1);
-            }
-            let target = &args[2];
-            let version = &args[3];
-
-            if !confirm_action(
-                target,
-                &format!("Deploy release artifact {}", version),
-                "HIGH (Tier 2 Mutating Write)",
-                "Service will gracefully restart workers under blue-green staging.",
-            ) {
-                println!("Deployment cancelled by operator.");
-                return;
-            }
-
-            println!("==> [1/4] Acquiring environment deployment lock (§59 PROMPTS.md)...");
-            println!("==> [2/4] Executing pre-flight capacity check (Capacity Headroom: SAFE)...");
-            println!(
-                "==> [3/4] Pulling artifact {} and updating systemd service...",
-                version
-            );
-            println!("==> [4/4] Verifying post-flight health (HTTP status 200, 0 error spikes)...");
-            println!("Deployment successful. Change recorded in immutable audit journal.");
-        }
-        "rollback" => {
-            if args.len() < 3 {
-                eprintln!("Usage: kyvon rollback <target-app>");
-                process::exit(1);
-            }
-            let target = &args[2];
-
-            if !confirm_action(
-                target,
-                "Emergency Rollback to last verified snapshot",
-                "HIGH (Tier 2 Mutating Write)",
-                "Previous container/service version will be restored immediately.",
-            ) {
-                println!("Rollback cancelled by operator.");
-                return;
-            }
-
-            println!("==> [1/3] Freezing outbound mutations on {}...", target);
-            println!("==> [2/3] Restoring previous configuration and restarting daemon...");
-            println!("==> [3/3] Validating HTTP health checks...");
-            println!("Rollback completed successfully. System nominal.");
-        }
-        "incident" => {
-            println!("=== Active & Recent SRE Incidents (§12 PROMPTS.md) ===");
-            println!(
-                "{:<12} {:<18} {:<24} {:<15} {:<12}",
-                "SEVERITY", "SERVER", "TITLE", "STARTED", "STATUS"
-            );
-            println!("{:-<85}", "");
-            println!(
-                "{:<12} {:<18} {:<24} {:<15} {:<12}",
-                "CRITICAL", "staging-lon-02", "Kernel Memory PSI Stall", "12m ago", "INVESTIGATING"
-            );
-            println!(
-                "{:<12} {:<18} {:<24} {:<15} {:<12}",
-                "LOW", "prod-fra-01", "Nginx Reload Config", "2h ago", "RESOLVED"
-            );
+        "site" | "deploy" | "rollback" | "incident" | "agent" | "device" => {
+            eprintln!("This command is not available in the client-only V4.1 CLI. Connect a VPS in the desktop app; no operation was simulated.");
+            process::exit(2);
         }
         "diagnose" => {
-            let target = args.get(2).map(|s| s.as_str()).unwrap_or("prod-fra-01");
-            println!(
-                "=== KyvonOPS Autonomous Root-Cause Diagnostics: {} ===",
-                target
-            );
-            println!("  [Root Cause Summary]");
-            println!(
-                "    Nominal operation. No critical CPU, memory, or disk I/O bottlenecks detected."
-            );
-            println!("  [Telemetry Corroboration]");
-            println!("    • Memory PSI stall avg10: 2.1% (Safe threshold < 15%)");
-            println!("    • Inode headroom: 72% free");
-            println!("    • TCP ListenDrops: 0 (No dropped handshakes)");
-            println!("  [Confidence Score]: 94% (Evidence-backed via /proc virtual filesystem)");
+            let Some(target) = args.get(2) else {
+                eprintln!("Error: 'kyvon diagnose' requires a server id or alias.");
+                eprintln!("Usage: kyvon diagnose <server> [--db <path>]");
+                process::exit(1);
+            };
+            let db_override = flag_value(&args, "--db");
+            if let Err(message) = diagnose(target, db_override.as_deref()).await {
+                eprintln!("{message}");
+                process::exit(1);
+            }
         }
         "mcp" => {
             if args.len() < 3 {
@@ -277,17 +120,10 @@ async fn main() {
                     println!("\nSupported Clients: Codex Astra, Claude Opus, Agy Gemini 3.8.");
                 }
                 "doctor" => {
-                    println!("=== KyvonOPS MCP Doctor & Health Check ===");
                     println!(
-                        "  [1] Stdio Transport:               ONLINE (JSON-RPC 2.0 compliant)"
+                        "MCP doctor is available only when the local MCP service is configured."
                     );
-                    println!("  [2] Typed Tools Registered:         17 tools active (0 unrestricted shells)");
-                    println!("  [3] Policy Approval Gate:          ENFORCED (Tier 0-3 risk matrix active)");
-                    println!("  [4] Secret Redactor Pipeline:      VERIFIED (Private keys/tokens scrubbed)");
-                    println!(
-                        "  [5] OS Keyring Custody:            ACTIVE (Secrets isolated from AI)"
-                    );
-                    println!("All MCP subsystem integrity checks PASSED.");
+                    println!("No remote checks were run and no service health was assumed.");
                 }
                 cmd => {
                     eprintln!("Unknown mcp subcommand: '{}'", cmd);
@@ -295,90 +131,8 @@ async fn main() {
                 }
             }
         }
-        "agent" => {
-            if args.len() < 3 {
-                eprintln!("Error: 'kyvon agent' requires a subcommand (install, status)");
-                process::exit(1);
-            }
-            match args[2].as_str() {
-                "install" => {
-                    let host = args.get(3).map(|s| s.as_str()).unwrap_or("<user@hostname>");
-                    println!(
-                        "=== Deploying Musl Static Telemetry Probe: {} (§84 PROMPTS.md) ===",
-                        host
-                    );
-                    println!("  Target Architecture: x86_64-unknown-linux-musl");
-                    println!("  Binary Payload:      < 3.8 MB (Zero dynamic dependencies)");
-                    println!("  System Privileges:   Unprivileged syscall reader (/proc, /sys)");
-                    println!("Run agent bootstrap pipeline over SSH:");
-                    println!("  ssh {} 'curl -fsSL https://raw.githubusercontent.com/Filip2k03/kyvon_ops/main/agent/bootstrap.sh | bash'", host);
-                }
-                "status" => {
-                    let host = args.get(3).map(|s| s.as_str()).unwrap_or("prod-fra-01");
-                    println!("=== Kyvon Agent Status: {} ===", host);
-                    println!("  Daemon Status:       ACTIVE (systemd: kyvon-agent.service)");
-                    println!("  Resident Memory:     2.84 MB RSS (Invariant: < 4MB RSS strictly satisfied)");
-                    println!("  CPU Utilization:     0.08% host CPU");
-                    println!("  Telemetry Cadence:   1000ms tick interval");
-                }
-                cmd => {
-                    eprintln!("Unknown agent subcommand: '{}'", cmd);
-                    process::exit(1);
-                }
-            }
-        }
-        "device" => {
-            if args.len() < 3 {
-                eprintln!("Error: 'kyvon device' requires a subcommand (list, revoke)");
-                process::exit(1);
-            }
-            match args[2].as_str() {
-                "list" => {
-                    println!("=== Paired Mobile Devices (§16 & §98 PROMPTS.md) ===");
-                    println!(
-                        "{:<18} {:<10} {:<38} {:<15}",
-                        "DEVICE NAME", "PLATFORM", "KEY FINGERPRINT", "LAST SEEN"
-                    );
-                    println!("{:-<85}", "");
-                    println!(
-                        "{:<18} {:<10} {:<38} {:<15}",
-                        "Stephan's iPhone",
-                        "iOS 17.5",
-                        "SHA256:4f8a9e7b2c1d0f5e8a7b9c6d3e2f1a0b",
-                        "2 minutes ago"
-                    );
-                    println!(
-                        "{:<18} {:<10} {:<38} {:<15}",
-                        "Pixel 8 Pro",
-                        "Android 14",
-                        "SHA256:9c8e7d6b5a4f3e2d1c0b9a8f7e6d5c4b",
-                        "1 hour ago"
-                    );
-                }
-                "revoke" => {
-                    let id = args.get(3).map(|s| s.as_str()).unwrap_or("unknown");
-                    if !confirm_action(
-                        id,
-                        "Revoke Device Authorization",
-                        "MEDIUM (Security Revocation)",
-                        "Device will immediately lose observation, approval, and 2FA capability.",
-                    ) {
-                        println!("Revocation cancelled.");
-                        return;
-                    }
-                    println!(
-                        "Device '{}' revoked. Cryptographic sessions invalidated.",
-                        id
-                    );
-                }
-                cmd => {
-                    eprintln!("Unknown device subcommand: '{}'", cmd);
-                    process::exit(1);
-                }
-            }
-        }
         "version" | "--version" | "-v" => {
-            println!("kyvon version 0.1.0 (KyvonOPS V3.0 Specification Release)");
+            println!("kyvon version 4.1.0 (client-only preview)");
         }
         "help" | "--help" | "-h" => {
             print_help();
@@ -391,26 +145,249 @@ async fn main() {
     }
 }
 
+/// The value following `flag` in `args`, if present.
+fn flag_value(args: &[String], flag: &str) -> Option<String> {
+    let idx = args.iter().position(|a| a == flag)?;
+    args.get(idx + 1).cloned()
+}
+
+/// Where the desktop app keeps its store, so the CLI diagnoses the same data
+/// the app shows rather than a database of its own.
+///
+/// Tauri resolves this through the platform app-data directory; the CLI is not
+/// a Tauri app, so the path is reconstructed here. `--db` overrides it, which
+/// is also how a portable or test profile is diagnosed.
+fn default_database_path() -> Option<PathBuf> {
+    let home = env::var_os("HOME").map(PathBuf::from)?;
+    let base = if cfg!(target_os = "macos") {
+        home.join("Library/Application Support")
+    } else {
+        env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join(".local/share"))
+    };
+    Some(base.join("com.kyvon.ops").join("kyvon.db"))
+}
+
+async fn list_inventory() -> Result<Vec<kyvon_core::ServerProfile>, String> {
+    let path = default_database_path().ok_or_else(|| {
+        "Cannot locate the KyvonOPS database: HOME is not set. Run the desktop app first."
+            .to_string()
+    })?;
+    if !path.exists() {
+        return Err(format!(
+            "No KyvonOPS database at {}. Connect a VPS in the desktop app first.",
+            path.display()
+        ));
+    }
+    let db = Database::open(&path)
+        .await
+        .map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
+    ServerRepo::new(db)
+        .list()
+        .await
+        .map_err(|e| format!("Cannot read the VPS inventory: {e}"))
+}
+
+/// Score a host from telemetry already on disk.
+///
+/// This reads SQLite and opens no connection to the host, so it answers for a
+/// server that is currently unreachable -- which is when the question is most
+/// often asked. It reports what it cannot compute rather than substituting a
+/// figure, which is the whole difference between this and what the command
+/// printed before: invented PSI percentages and a "94% confidence" that was not
+/// derived from anything.
+async fn diagnose(target: &str, db_override: Option<&str>) -> Result<(), String> {
+    let path = match db_override {
+        Some(p) => PathBuf::from(p),
+        None => default_database_path().ok_or_else(|| {
+            "Cannot locate the KyvonOPS database: HOME is not set. Pass --db <path>.".to_string()
+        })?,
+    };
+    if !path.exists() {
+        return Err(format!(
+            "No KyvonOPS database at {}. Run the desktop app and start a collector first, or pass --db <path>.",
+            path.display()
+        ));
+    }
+
+    let db = Database::open(&path)
+        .await
+        .map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
+
+    // Accept an alias as well as an id: an operator knows their host by name.
+    let servers = ServerRepo::new(db.clone())
+        .list()
+        .await
+        .map_err(|e| format!("Cannot read the server inventory: {e}"))?;
+    let server = servers
+        .iter()
+        .find(|s| s.id == target || s.alias == target)
+        .ok_or_else(|| {
+            let known: Vec<&str> = servers.iter().map(|s| s.alias.as_str()).collect();
+            format!(
+                "No server `{target}` in {}. Known aliases: {}",
+                path.display(),
+                if known.is_empty() {
+                    "none".to_string()
+                } else {
+                    known.join(", ")
+                }
+            )
+        })?;
+
+    let metrics = MetricRepo::new(db.clone());
+    let now = now_ms();
+    let known = metrics
+        .known_metrics(&server.id)
+        .await
+        .map_err(|e| format!("Cannot list recorded metrics: {e}"))?;
+    let wanted = wanted_metrics(&known);
+
+    let load = |from: i64| {
+        let metrics = metrics.clone();
+        let wanted = wanted.clone();
+        let id = server.id.clone();
+        async move {
+            let series = metrics
+                .series_multi(
+                    &id,
+                    &wanted,
+                    from,
+                    now,
+                    Resolution::for_diagnosis(now - from),
+                )
+                .await
+                .map_err(|e| format!("Cannot read telemetry history: {e}"))?;
+            let mut history = MetricHistory::new();
+            for (metric, points) in series {
+                history.insert(
+                    metric,
+                    points.into_iter().map(|p| (p.ts, p.value)).collect(),
+                );
+            }
+            Ok::<MetricHistory, String>(history)
+        }
+    };
+
+    println!(
+        "=== KyvonOPS diagnostics: {} ({}) ===",
+        server.alias, server.hostname
+    );
+    println!(
+        "Source: {} (no connection was made to the host)",
+        path.display()
+    );
+    println!();
+
+    // --- Outage risk, over the last hour ---
+    let recent = load(now - 3_600_000).await?;
+    match risk_signals(
+        &recent,
+        server
+            .facts
+            .as_ref()
+            .map(|f| f.cpu_cores)
+            .filter(|c| *c > 0),
+        now,
+    ) {
+        Some(signals) => {
+            let risk = calculate_outage_risk(&signals);
+            println!("[Outage risk] {}/100 — {:?}", risk.score, risk.level);
+            println!("  {}", risk.recommendation);
+            if risk.factors.is_empty() {
+                println!("  No indicator fired in the dimensions that were measured.");
+            } else {
+                for factor in &risk.factors {
+                    println!(
+                        "  • {} (+{}) — {}",
+                        factor.name, factor.score_impact, factor.current_value
+                    );
+                }
+            }
+            if !risk.unevaluated_dimensions.is_empty() {
+                println!(
+                    "  Not examined ({}): {}",
+                    risk.unevaluated_dimensions.len(),
+                    risk.unevaluated_dimensions.join(", ")
+                );
+                println!("  Nothing measures these, so a problem in any of them would not have changed the score.");
+            }
+        }
+        None => {
+            let age = recent.newest_ts().map(|ts| (now - ts) / 1000);
+            match age {
+                Some(secs) => println!(
+                    "[Outage risk] Unavailable: newest sample is {secs}s old, beyond the {}s window this score treats as current.",
+                    MAX_CARRY_MS / 1000
+                ),
+                None => println!(
+                    "[Outage risk] Unavailable: no telemetry recorded for `{}` in the last hour.",
+                    server.alias
+                ),
+            }
+        }
+    }
+    println!();
+
+    // --- Capacity, over the last day ---
+    let window_hours = 24i64;
+    let day = load(now - window_hours * 3_600_000).await?;
+    let samples = trend_samples(&day);
+    if samples.is_empty() {
+        println!(
+            "[Capacity] Unavailable: no point in the last {window_hours}h has CPU, memory and disk recorded within {}s of each other.",
+            MAX_CARRY_MS / 1000
+        );
+    } else {
+        let forecast = predict_capacity(&samples);
+        println!(
+            "[Capacity] {:.1}% used, {:.1}% headroom on the tightest resource ({} samples over {window_hours}h)",
+            forecast.current_utilization_pct,
+            forecast.reserved_headroom_pct,
+            samples.len()
+        );
+        // "No trend was found" and "the window was too short to look" are
+        // different answers, and printing the first for the second is how a
+        // reader concludes a host is steady when nothing was observed.
+        if forecast.bottleneck_resource == kyvon_diagnostics::capacity::INSUFFICIENT {
+            println!(
+                "  No projection: these samples span under {} minutes, too little to contain a trend.",
+                kyvon_diagnostics::capacity::MIN_SPAN_MS / 60_000
+            );
+            println!("  Leave the collector running and ask again.");
+            return Ok(());
+        }
+        println!("  Growing fastest: {}", forecast.bottleneck_resource);
+        match forecast.projected_saturation_days {
+            Some(days) => println!(
+                "  Projected saturation: {days:.1} days if the last {window_hours}h repeats"
+            ),
+            None => println!("  Projected saturation: nothing is trending upward"),
+        }
+        for point in &forecast.points {
+            println!(
+                "  +{:>3}h   cpu {:>5.1}%   ram {:>5.1}%   disk {:>5.1}%",
+                point.hours_ahead,
+                point.projected_cpu_pct,
+                point.projected_ram_pct,
+                point.projected_disk_pct
+            );
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
     fn test_cli_subcommands_documented() {
         let commands = [
             "server list",
-            "server health",
-            "server inspect",
-            "site list",
-            "site inspect",
-            "deploy",
-            "rollback",
-            "incident",
             "diagnose",
             "mcp install",
             "mcp doctor",
-            "agent install",
-            "agent status",
-            "device list",
-            "device revoke",
             "version",
         ];
         for cmd in &commands {
