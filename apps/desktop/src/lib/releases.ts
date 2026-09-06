@@ -54,6 +54,15 @@ export type ReleaseState =
   | { state: 'none'; detail: string }
   | { state: 'failed'; detail: string };
 
+export const CURRENT_VERSION = '4.1.0';
+
+export type UpdateCheckState =
+  | { state: 'checking' }
+  | { state: 'available'; release: Release; variants: Variant[] }
+  | { state: 'up-to-date'; release: Release }
+  | { state: 'no-release'; detail: string }
+  | { state: 'unavailable'; detail: string };
+
 const EXTENSION_FORMATS: Array<[RegExp, string, Platform]> = [
   [/\.dmg$/i, 'DMG', 'macOS'],
   [/\.app\.tar\.gz$/i, 'App bundle', 'macOS'],
@@ -139,6 +148,21 @@ export function formatSize(bytes: number): string {
 
 const RELEASES_API = 'https://api.github.com/repos/Filip2k03/kyvon_ops/releases/latest';
 
+function versionParts(version: string): [number, number, number] | null {
+  const match = version.trim().replace(/^v/i, '').match(/^(\d+)\.(\d+)\.(\d+)/);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+}
+
+function compareVersions(left: string, right: string): number | null {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  if (!a || !b) return null;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+  }
+  return 0;
+}
+
 /**
  * Fetch the latest published release.
  *
@@ -181,4 +205,33 @@ export async function fetchLatestRelease(signal?: AbortSignal): Promise<ReleaseS
       }. Check your network, or open the releases page directly.`,
     };
   }
+}
+
+/**
+ * Check for a published stable release without installing anything.
+ *
+ * The updater is deliberately read-only until signed Tauri updater metadata is
+ * configured. A release link is returned so the user can review notes and
+ * checksums before downloading it.
+ */
+export async function checkForUpdate(
+  currentVersion = CURRENT_VERSION,
+  signal?: AbortSignal,
+): Promise<UpdateCheckState> {
+  const latest = await fetchLatestRelease(signal);
+  if (latest.state === 'loading') return { state: 'checking' };
+  if (latest.state === 'none') return { state: 'no-release', detail: latest.detail };
+  if (latest.state === 'failed') return { state: 'unavailable', detail: latest.detail };
+
+  const comparison = compareVersions(latest.release.tag_name, currentVersion);
+  if (comparison === null) {
+    return {
+      state: 'unavailable',
+      detail: `The published release version (${latest.release.tag_name}) could not be compared with this build (${currentVersion}).`,
+    };
+  }
+
+  return comparison > 0
+    ? { state: 'available', release: latest.release, variants: latest.variants }
+    : { state: 'up-to-date', release: latest.release };
 }

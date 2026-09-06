@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { DONATION_TIERS, StripeClient } from '../../lib/api/stripe';
 import { SponsorBanner } from '../../components/monetization/SponsorBanner';
+import { UpdateStatusCard } from './UpdateStatusCard';
 
 export const DownloadPortal: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState<number>(15);
@@ -54,6 +55,8 @@ export const DownloadPortal: React.FC = () => {
           Download native binaries for your operating system or compile mobile builds for remote fleet management from anywhere.
         </p>
       </div>
+
+      <UpdateStatusCard />
 
       {/* Platform availability: only link artifacts that actually exist. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
