@@ -505,11 +505,34 @@ async fn authenticate_via_agent(
 ) -> Result<bool> {
     use russh::keys::agent::client::AgentClient;
 
-    let mut agent = AgentClient::connect_env().await.map_err(|e| {
-        KyvonError::Vault(format!(
-            "could not reach an ssh-agent (SSH_AUTH_SOCK): {e}. Start one, or configure a key file instead."
-        ))
-    })?;
+    // `SSH_AUTH_SOCK` is a Unix convention. Windows runners and Windows
+    // users use Pageant instead; keeping the selection here makes the same
+    // typed agent-auth path compile for every supported desktop target.
+    #[cfg(unix)]
+    let mut agent = AgentClient::connect_env()
+        .await
+        .map_err(|e| {
+            KyvonError::Vault(format!(
+                "could not reach an ssh-agent (SSH_AUTH_SOCK): {e}. Start one, or configure a key file instead."
+            ))
+        })?
+        .dynamic();
+
+    #[cfg(windows)]
+    let mut agent = AgentClient::connect_pageant()
+        .await
+        .map_err(|e| {
+            KyvonError::Vault(format!(
+                "could not reach the Windows SSH agent (Pageant): {e}. Start Pageant, or configure a key file instead."
+            ))
+        })?
+        .dynamic();
+
+    #[cfg(not(any(unix, windows)))]
+    return Err(KyvonError::Vault(
+        "SSH agent authentication is unavailable on this platform; configure a key file instead."
+            .into(),
+    ));
 
     let identities = agent
         .request_identities()
