@@ -63,7 +63,7 @@ jobs:
       - name: TypeScript & Vite Build
         run: cd apps/desktop && bun run build
       - name: Public Website Boundary Tests
-        run: cd apps/desktop && bun test tests/public-website.test.tsx
+        run: cd apps/desktop && bun test tests/
 
       # End-to-end over the built bundle, not the live site: a test that
       # depends on production fails when Cloudflare is slow and passes when a

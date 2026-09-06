@@ -18,3 +18,4 @@ apps/desktop/*.config.js
 !.env.example
 test-results/
 playwright-report/
+assets/blender/exports/

@@ -50,7 +50,8 @@ fi
 # Step 3: Synchronize Web Distribution Artifacts
 echo "==> [3/6] Deploying Static Distribution to ${APP_DIR}..."
 sudo mkdir -p "${APP_DIR}"
-sudo rsync -av --delete apps/desktop/dist/ "${APP_DIR}/"
+sudo find "${APP_DIR}" -type f \( -name '._*' -o -name '.DS_Store' \) -delete
+sudo rsync -av --delete --exclude='._*' --exclude='.DS_Store' apps/desktop/dist/ "${APP_DIR}/"
 sudo chown -R www-data:www-data "${APP_DIR}" || true
 
 # Never invent updater metadata. A production deployment may publish an

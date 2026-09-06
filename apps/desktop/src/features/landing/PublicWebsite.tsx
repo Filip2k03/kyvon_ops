@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowRight, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
 import { Downloads } from './Downloads';
+import { KyvonLanding, KyvonPets, KyvonSecurity } from '../kyvon/KyvonPages';
 
 const repository = 'https://github.com/Filip2k03/kyvon_ops';
 const linkStyle = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-400';
@@ -108,7 +109,7 @@ export function PublicWebsite() {
       <header className="border-b border-slate-800">
         <nav aria-label="Public navigation" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
           <Link to="/" className="flex min-h-11 items-center gap-3 font-semibold tracking-wide"><span className="rounded-lg bg-sky-400 p-2 text-slate-950"><Layers aria-hidden="true" className="h-5 w-5" /></span> KyvonOPS</Link>
-          <div className="flex flex-wrap items-center gap-5 text-sm text-slate-300"><Link className="py-3 hover:text-white" to="/preview">App preview</Link><Link className="py-3 hover:text-white" to="/getting-started">Getting started</Link><Link className="py-3 hover:text-white" to="/downloads">Downloads</Link><a className="py-3 hover:text-white" href={repository} target="_blank" rel="noopener noreferrer">GitHub</a></div>
+          <div className="flex flex-wrap items-center gap-5 text-sm text-slate-300"><Link className="py-3 hover:text-white" to="/preview">App preview</Link><Link className="py-3 hover:text-white" to="/getting-started">Getting started</Link><Link className="py-3 hover:text-white" to="/kyvon">KYVON</Link><Link className="py-3 hover:text-white" to="/downloads">Downloads</Link><a className="py-3 hover:text-white" href={repository} target="_blank" rel="noopener noreferrer">GitHub</a></div>
         </nav>
       </header>
       <main id="public-content" className="mx-auto max-w-6xl px-6">
@@ -116,6 +117,10 @@ export function PublicWebsite() {
           <Route path="/" element={<Overview />} />
           <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route path="/preview" element={<><h1 className="pt-12 text-4xl font-semibold">Inside the KyvonOPS app</h1><AppPreview /></>} />
+          <Route path="/kyvon" element={<KyvonLanding />} />
+          <Route path="/kyvon/pets" element={<KyvonPets />} />
+          <Route path="/kyvon/characters" element={<KyvonPets />} />
+          <Route path="/kyvon/security" element={<KyvonSecurity />} />
           <Route path="/downloads" element={<><h1 className="pt-12 text-4xl font-semibold">Get KyvonOPS</h1><Downloads /><GettingStarted /></>} />
           <Route path="/getting-started" element={<><h1 className="pt-12 text-4xl font-semibold">Start with your own infrastructure</h1><GettingStarted /></>} />
           <Route path="*" element={<Navigate to="/" replace />} />
