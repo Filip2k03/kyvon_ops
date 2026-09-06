@@ -165,15 +165,49 @@ fn value_span_after(s: &str, key_end: usize) -> Option<(usize, usize)> {
     while i < bytes.len() && (bytes[i] == b' ' || bytes[i] == b'\t') {
         i += 1;
     }
-    // A credential is a scalar. When the value opens a JSON or array
-    // container, this is a structured document rather than a `key=secret`
-    // assignment, and masking from the brace to end-of-line would truncate the
-    // container and leave its contents orphaned — producing invalid JSON while
-    // protecting nothing. Structured payloads are redacted key-by-key by
-    // `kyvon_policy::redactor` instead, which descends into the container and
-    // masks the leaf values that actually hold secrets.
-    if matches!(bytes.get(i), Some(b'{') | Some(b'[')) {
-        return None;
+    // A container value — `token: ["ghp_..."]` — is masked whole, by scanning
+    // to its matching bracket.
+    //
+    // Returning `None` here instead would leak: this function's callers are
+    // raw text (SFTP previews, stderr, audit summaries, process command
+    // lines) where nothing descends into the structure afterwards, so an
+    // unmasked container hands the secret straight through. Stopping at
+    // end-of-line would truncate the container and corrupt the document.
+    // Only the balanced span does both jobs.
+    if let Some(&open @ (b'{' | b'[')) = bytes.get(i) {
+        let close = if open == b'{' { b'}' } else { b']' };
+        let start = i;
+        let mut depth = 0usize;
+        let mut in_string = false;
+        let mut escaped = false;
+        while i < bytes.len() {
+            let b = bytes[i];
+            i += 1;
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if b == b'\\' {
+                    escaped = true;
+                } else if b == b'"' {
+                    in_string = false;
+                }
+                continue;
+            }
+            match b {
+                b'"' => in_string = true,
+                x if x == open => depth += 1,
+                x if x == close => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some((start, i));
+                    }
+                }
+                _ => {}
+            }
+        }
+        // Unbalanced (output truncated mid-structure): mask to the end rather
+        // than let the tail through.
+        return (i > start).then_some((start, i));
     }
 
     // Optional opening quote around the value.
@@ -240,18 +274,31 @@ fn strip_pem_bodies(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn a_container_value_is_left_intact_so_json_stays_parseable() {
-        // `"auth": {` used to mask from the brace to end-of-line, truncating
-        // the object and making the whole document unparseable. The nested
-        // scalars are still redacted by the structured redactor.
-        let doc = "{\n  \"auth\": {\n    \"type\": \"agent\"\n  }\n}";
-        assert_eq!(redact(doc), doc, "a container value must survive redaction");
+    fn a_container_value_is_masked_whole_rather_than_truncated() {
+        // Raw text has nothing that descends into the structure afterwards, so
+        // a container value must be masked here or the secret escapes. Bailing
+        // out leaked; stopping at end-of-line truncated the document. Only the
+        // balanced span does both jobs.
+        for (input, secret) in [
+            ("token: [\"ghp_realsecret123\"]", "ghp_realsecret123"),
+            ("password={\"v\":\"hunter2\"}", "hunter2"),
+            ("api_keys: [\"ghp_x\", \"ghp_y\"]", "ghp_y"),
+            // Nesting, and a bracket inside a string, must not end the span early.
+            ("secret: {\"a\": {\"b\": \"deep\"}}", "deep"),
+            ("token: [\"has ] bracket\", \"tail\"]", "tail"),
+        ] {
+            let out = redact(input);
+            assert!(!out.contains(secret), "{input} leaked {secret} -> {out}");
+            assert!(out.contains(MASK), "{input} should be masked -> {out}");
+        }
+    }
 
-        let list = "authorized_keys: [\"ssh-ed25519 AAAA\"]";
-        assert!(
-            !redact(list).contains(MASK),
-            "an array value is not a secret"
-        );
+    #[test]
+    fn a_truncated_container_is_still_masked() {
+        // Output cut off mid-structure must not fall through unmasked.
+        let out = redact("token: [\"ghp_cut_off");
+        assert!(!out.contains("ghp_cut_off"));
+        assert!(out.contains(MASK));
     }
 
     #[test]
