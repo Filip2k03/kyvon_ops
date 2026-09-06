@@ -20,7 +20,7 @@
  * look like an empty success.
  */
 
-import type { ServerProfile } from '../types';
+import type { HostFacts, ServerProfile } from '../types';
 
 export type Loaded<T> =
   | { state: 'ok'; data: T }
@@ -88,5 +88,5 @@ export const Backend = {
     call<void>('resize_terminal', { id, cols, rows }),
   startCollector: (id: string) => call<void>('start_collector', { id }),
   stopCollector: (id: string) => call<void>('stop_collector', { id }),
-  probeCapabilities: (id: string) => call<unknown>('probe_capabilities', { id }),
+  probeCapabilities: (id: string) => call<HostFacts>('probe_capabilities', { id }),
 };

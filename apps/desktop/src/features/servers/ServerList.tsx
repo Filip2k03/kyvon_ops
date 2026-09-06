@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Server, Plus, Terminal, RefreshCw, Trash2, Zap } from 'lucide-react';
+import { Server, Plus, Terminal, RefreshCw, Trash2, Zap, Search } from 'lucide-react';
 import { AddServerDialog, NewServerData } from './AddServerDialog';
 import { useNavigate } from 'react-router-dom';
 import { Backend, hasBackend, type Loaded } from '../../lib/backend';
 import { LoadedFallback, NoDataState } from '../../components/ui/NoDataState';
 import { describeAuth, type ServerProfile } from '../../types';
+import { formatBytes } from '../../lib/useTelemetry';
 
 type HostKeyPromptPayload = {
   prompt_id: string;
@@ -76,6 +77,18 @@ export const ServerList: React.FC = () => {
     // and is the only authority on what is actually persisted.
     if (created.state === 'ok') await load();
     else throw new Error(`${created.reason}. ${created.detail}`);
+  };
+
+  const [probing, setProbing] = useState<string | null>(null);
+
+  // A probe writes HostFacts to the store, so re-read rather than patching
+  // local state: the store is the authority on what was actually persisted.
+  const handleProbe = async (id: string) => {
+    setProbing(id);
+    const probed = await Backend.probeCapabilities(id);
+    setProbing(null);
+    if (probed.state === 'ok') await load();
+    else setResult(probed as unknown as Loaded<ServerProfile[]>);
   };
 
   const handleDelete = async (id: string) => {
@@ -185,10 +198,40 @@ export const ServerList: React.FC = () => {
                 <span>Authentication</span>
                 <span className="text-white font-medium text-[11px]">{describeAuth(server.auth)}</span>
               </div>
-              <div className="flex justify-between items-center text-secondary">
-                <span>Live telemetry</span>
-                <span className="text-[11px] text-secondary/70 italic">Not collected yet</span>
-              </div>
+              {/*
+                Facts come from a completed probe and are null until one runs.
+                Showing a distribution guessed from the hostname, or a core
+                count of 0, would be the fabrication this project forbids —
+                so an unprobed host says exactly that.
+              */}
+              {server.facts ? (
+                <>
+                  <div className="flex justify-between items-center text-secondary">
+                    <span>Operating system</span>
+                    <span className="text-white font-medium text-[11px]">
+                      {server.facts.os_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-secondary">
+                    <span>Kernel &amp; arch</span>
+                    <span className="text-white font-mono text-[11px]">
+                      {server.facts.kernel} · {server.facts.arch}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-secondary">
+                    <span>CPU &amp; memory</span>
+                    <span className="text-white font-mono text-[11px]">
+                      {server.facts.cpu_cores} cores ·{' '}
+                      {formatBytes(server.facts.memory_total_bytes)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center text-secondary">
+                  <span>Host facts</span>
+                  <span className="text-[11px] text-secondary/70 italic">Not probed yet</span>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
@@ -199,6 +242,24 @@ export const ServerList: React.FC = () => {
                   disabled={connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting'}
                 >
                   <RefreshCw className={`w-3 h-3 ${connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting' ? 'animate-spin' : ''}`} /> {connectionStates[server.id] === 'connected' ? 'Disconnect' : connectionStates[server.id] === 'connecting' ? 'Connecting…' : connectionStates[server.id] === 'disconnecting' ? 'Disconnecting…' : 'Connect'}
+                </button>
+
+                {/*
+                  Probing needs a live session, so the button says why it is
+                  unavailable rather than failing silently when clicked.
+                */}
+                <button
+                  onClick={() => void handleProbe(server.id)}
+                  disabled={probing === server.id || connectionStates[server.id] !== 'connected'}
+                  className="px-3 py-1.5 rounded-lg border border-border bg-elevated hover:bg-elevated/80 text-secondary hover:text-white text-xs font-semibold flex items-center gap-1 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={
+                    connectionStates[server.id] === 'connected'
+                      ? 'Read OS, kernel, CPU and memory from the host'
+                      : 'Connect first — probing reads the host over SSH'
+                  }
+                >
+                  <Search className={`w-3 h-3 ${probing === server.id ? 'animate-pulse' : ''}`} />
+                  {probing === server.id ? 'Probing…' : 'Probe'}
                 </button>
 
                 <button
