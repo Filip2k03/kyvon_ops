@@ -1,6 +1,7 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useState } from 'react';
-import { ArrowRight, Download, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
+import { Downloads } from './Downloads';
 
 const repository = 'https://github.com/Filip2k03/kyvon_ops';
 const linkStyle = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-400';
@@ -34,29 +35,6 @@ function AppPreview() {
         </div>
       </div>
       <div className="mt-6 flex flex-wrap gap-3"><Link className={`${linkStyle} border border-slate-700 hover:bg-slate-800`} to="/getting-started">How installation works <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link><a href={`${repository}/blob/main/PROMPTS.md`} target="_blank" rel="noopener noreferrer" className={`${linkStyle} text-slate-400 hover:text-white`}>Read the V3.0 specification</a></div>
-    </section>
-  );
-}
-
-function Releases() {
-  return (
-    <section id="downloads" className="scroll-mt-24 py-16">
-      <p className="text-sm font-medium text-sky-400">Install on your workstation</p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight">Your infrastructure. Your workspace.</h2>
-      <p className="mt-4 max-w-2xl leading-7 text-slate-400">KyvonOPS V3.0 is in development. Check published releases for available installers and their platform requirements. A web preview does not include SSH access or the native operations engine.</p>
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {['macOS', 'Windows', 'Linux'].map(platform => (
-          <article key={platform} className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-            <Monitor aria-hidden="true" className="h-6 w-6 text-slate-400" />
-            <h3 className="mt-5 text-xl font-medium">{platform}</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-400">Installers and signing status are listed with each release. Availability is not verified by this website.</p>
-            <a className={`${linkStyle} mt-5 border border-slate-700 hover:bg-slate-800`} href={`${repository}/releases`} target="_blank" rel="noopener noreferrer" aria-label={`Check ${platform} releases on GitHub`}>
-              <Download aria-hidden="true" className="h-4 w-4" /> Check releases
-            </a>
-          </article>
-        ))}
-      </div>
-      <p className="mt-5 text-sm text-slate-400">Android and iOS companion applications are planned. Only install artifacts published and verified by the project.</p>
     </section>
   );
 }
@@ -117,7 +95,7 @@ function Overview() {
         })}
       </section>
       <AppPreview />
-      <Releases />
+      <Downloads />
       <GettingStarted />
     </>
   );
@@ -138,7 +116,7 @@ export function PublicWebsite() {
           <Route path="/" element={<Overview />} />
           <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route path="/preview" element={<><h1 className="pt-12 text-4xl font-semibold">Inside the KyvonOPS app</h1><AppPreview /></>} />
-          <Route path="/downloads" element={<><h1 className="pt-12 text-4xl font-semibold">Get KyvonOPS</h1><Releases /><GettingStarted /></>} />
+          <Route path="/downloads" element={<><h1 className="pt-12 text-4xl font-semibold">Get KyvonOPS</h1><Downloads /><GettingStarted /></>} />
           <Route path="/getting-started" element={<><h1 className="pt-12 text-4xl font-semibold">Start with your own infrastructure</h1><GettingStarted /></>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
