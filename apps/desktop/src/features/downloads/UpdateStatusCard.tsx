@@ -68,7 +68,7 @@ export const UpdateStatusCard: React.FC = () => {
             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
           </a>
           <span className="text-[11px] text-secondary">
-            Automatic installation is disabled until signed updater metadata is configured.
+            Force install is unavailable until signed updater metadata is configured; this protects the desktop from unsigned or tampered binaries.
           </span>
         </div>
       )}
