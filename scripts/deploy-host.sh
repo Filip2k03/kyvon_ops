@@ -32,7 +32,7 @@ echo "    ✓ Disk space headroom safe (${AVAILABLE_KB} KB available)"
 # Step 2: Build Web Application
 echo "==> [2/6] Building Production Web & Companion Bundles..."
 cd apps/desktop
-bun install --frozen-lockfile || bun install
+bun install --frozen-lockfile
 bun run build
 cd ../..
 
@@ -42,33 +42,24 @@ sudo mkdir -p "${APP_DIR}"
 sudo rsync -av --delete apps/desktop/dist/ "${APP_DIR}/"
 sudo chown -R www-data:www-data "${APP_DIR}" || true
 
-# Generate Tauri Release Manifest for in-app updates
-sudo mkdir -p "${APP_DIR}/releases"
-cat <<EOF | sudo tee "${APP_DIR}/releases/latest.json" > /dev/null
-{
-  "version": "3.0.0",
-  "notes": "KyvonOPS V3.0 Sovereign DevOps Intelligence & Mobile Companion",
-  "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "platforms": {
-    "darwin-aarch64": {
-      "signature": "",
-      "url": "https://${DOMAIN}/releases/KyvonOPS_3.0.0_aarch64.dmg"
-    },
-    "darwin-x86_64": {
-      "signature": "",
-      "url": "https://${DOMAIN}/releases/KyvonOPS_3.0.0_x64.dmg"
-    },
-    "linux-x86_64": {
-      "signature": "",
-      "url": "https://${DOMAIN}/releases/KyvonOPS_3.0.0_amd64.AppImage"
-    },
-    "windows-x86_64": {
-      "signature": "",
-      "url": "https://${DOMAIN}/releases/KyvonOPS_3.0.0_x64_en-US.msi"
+# Never invent updater metadata. A production deployment may publish an
+# already-signed manifest only when RELEASE_MANIFEST points to a verified file.
+if [ -n "${RELEASE_MANIFEST:-}" ]; then
+    test -s "${RELEASE_MANIFEST}" || { echo "ERROR: RELEASE_MANIFEST is empty or missing."; exit 1; }
+    command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required to validate RELEASE_MANIFEST."; exit 1; }
+    jq -e '
+      (.version | type == "string") and
+      (.platforms | type == "object" and length > 0) and
+      (all(.platforms[]; (.url | startswith("https://")) and (.signature | type == "string" and length > 0)))
+    ' "${RELEASE_MANIFEST}" >/dev/null || {
+        echo "ERROR: RELEASE_MANIFEST must contain HTTPS URLs and non-empty signatures for every platform."
+        exit 1
     }
-  }
-}
-EOF
+    sudo install -d -m 0755 "${APP_DIR}/releases"
+    sudo install -m 0644 "${RELEASE_MANIFEST}" "${APP_DIR}/releases/latest.json"
+else
+    echo "    No signed release manifest supplied; leaving /releases unavailable."
+fi
 
 # Step 4: Configure Nginx Ingress & SPA Routing
 echo "==> [4/6] Provisioning Nginx Virtual Host for ${DOMAIN}..."
@@ -143,7 +134,11 @@ fi
 echo "==> [6/6] Verifying Deployment Integrity..."
 echo "    App Root:           ${APP_DIR}"
 echo "    Nginx Vhost:        ${NGINX_CONF}"
-echo "    Updater Endpoint:   https://${DOMAIN}/releases/latest.json"
+if [ -n "${RELEASE_MANIFEST:-}" ]; then
+    echo "    Updater Endpoint:   https://${DOMAIN}/releases/latest.json"
+else
+    echo "    Updater Endpoint:   disabled (no signed release manifest supplied)"
+fi
 echo "    Local Ingress:      http://127.0.0.1:${LOCAL_PORT}"
 echo ""
-echo "Deployment completed successfully! KyvonOPS is ready to serve on ${DOMAIN}."
+echo "Deployment completed successfully. KyvonOPS static web assets are ready for ${DOMAIN}."

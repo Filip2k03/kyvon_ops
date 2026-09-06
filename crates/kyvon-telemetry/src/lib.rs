@@ -23,8 +23,10 @@ pub mod collector;
 pub mod commands;
 pub mod proc;
 pub mod protocol;
+pub mod sample;
 pub mod state;
 
 pub use collector::{Block, Section, COLLECTOR_SCRIPT, COLLECTOR_VERSION};
 pub use protocol::{decode_line, encode_frame};
+pub use sample::frames_from_block;
 pub use state::TelemetryState;

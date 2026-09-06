@@ -60,4 +60,5 @@ pub struct AppState {
     pub db: Database,
     pub sessions: Arc<Mutex<SessionManager>>,
     pub prompts: Arc<PendingPrompts>,
+    pub collectors: crate::commands::telemetry::SharedCollectors,
 }

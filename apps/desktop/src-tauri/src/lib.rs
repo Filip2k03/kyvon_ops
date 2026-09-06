@@ -38,6 +38,7 @@ pub fn run() {
             app.manage(AppState {
                 db,
                 sessions: Arc::new(Mutex::new(SessionManager::new())),
+                collectors: Arc::new(commands::telemetry::Collectors::default()),
                 prompts: Arc::new(hostkey::PendingPrompts::default()),
             });
             Ok(())

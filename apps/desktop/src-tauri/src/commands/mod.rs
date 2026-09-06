@@ -28,3 +28,14 @@ pub fn not_implemented(operation: &str, needs: &str) -> String {
          No change was made on the remote host."
     )
 }
+
+/// Emit a domain event on the channel it declares.
+///
+/// `KyvonEvent::channel()` routes telemetry and terminal traffic away from the
+/// dashboard's listener, so a busy terminal cannot starve it and the frontend
+/// can unsubscribe from one without the other. Emitting everything on a single
+/// hardcoded channel would quietly undo that.
+pub fn emit_event(app: &tauri::AppHandle, event: kyvon_core::KyvonEvent) {
+    use tauri::Emitter;
+    let _ = app.emit(event.channel(), &event);
+}

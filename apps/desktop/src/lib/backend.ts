@@ -86,5 +86,7 @@ export const Backend = {
   writeTerminal: (id: string, data: string) => call<void>('write_terminal', { id, data }),
   resizeTerminal: (id: string, cols: number, rows: number) =>
     call<void>('resize_terminal', { id, cols, rows }),
+  startCollector: (id: string) => call<void>('start_collector', { id }),
+  stopCollector: (id: string) => call<void>('stop_collector', { id }),
   probeCapabilities: (id: string) => call<unknown>('probe_capabilities', { id }),
 };

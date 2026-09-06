@@ -62,3 +62,5 @@ jobs:
         run: cd apps/desktop && bun install --frozen-lockfile
       - name: TypeScript & Vite Build
         run: cd apps/desktop && bun run build
+      - name: Public Website Boundary Tests
+        run: cd apps/desktop && bun test tests/public-website.test.tsx

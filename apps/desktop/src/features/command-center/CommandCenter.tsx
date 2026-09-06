@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Server, Shield, Activity, RefreshCw, Plus, Cpu, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Backend, hasBackend, runtimeName, type Loaded } from '../../lib/backend';
+import { formatBytes, useTelemetry } from '../../lib/useTelemetry';
 import { LoadedFallback, NoDataState } from '../../components/ui/NoDataState';
 import type { ServerProfile } from '../../types';
 
@@ -20,19 +21,31 @@ import type { ServerProfile } from '../../types';
  * empty screen: an operator cannot tell a fabricated reading from a real one.
  */
 
-/** A panel that exists in the product but has no data path wired yet. */
-const PendingSignal: React.FC<{ icon: typeof Cpu; label: string; source: string }> = ({
-  icon: Icon,
-  label,
-  source,
-}) => (
+/**
+ * One headline signal.
+ *
+ * `value` is `null` until a real measurement arrives, and the panel renders
+ * that as "Not collected" with the source that would supply it. It never
+ * substitutes a zero: on this screen a number means something was measured.
+ */
+const Signal: React.FC<{
+  icon: typeof Cpu;
+  label: string;
+  source: string;
+  value?: string | null;
+  detail?: string | null;
+}> = ({ icon: Icon, label, source, value = null, detail = null }) => (
   <div className="bg-background/60 p-3.5 rounded-lg border border-border/50">
     <div className="text-xs text-secondary font-medium flex items-center justify-between">
       <span>{label}</span>
-      <Icon className="w-3.5 h-3.5 text-secondary/60" />
+      <Icon className={`w-3.5 h-3.5 ${value ? 'text-info' : 'text-secondary/60'}`} />
     </div>
-    <div className="mt-1.5 text-sm font-semibold text-secondary/70 italic">Not collected</div>
-    <div className="mt-0.5 text-[10px] text-secondary/60 leading-snug">{source}</div>
+    {value ? (
+      <div className="mt-1.5 text-lg font-semibold text-white font-mono tabular-nums">{value}</div>
+    ) : (
+      <div className="mt-1.5 text-sm font-semibold text-secondary/70 italic">Not collected</div>
+    )}
+    <div className="mt-0.5 text-[10px] text-secondary/60 leading-snug">{detail ?? source}</div>
   </div>
 );
 
@@ -52,6 +65,27 @@ export const CommandCenter: React.FC = () => {
   }, [load]);
 
   const servers = result?.state === 'ok' ? result.data : [];
+
+  // Telemetry is per-server; the headline row follows the first host until a
+  // selector exists. `null` subscribes to nothing rather than guessing an id.
+  const focused = servers[0]?.id ?? null;
+  const live = useTelemetry(focused);
+
+  // Start the collector for the focused host once it is connected. A failure
+  // here is not surfaced as an error: `start_collector` refuses when there is
+  // no session, which is the normal state before the operator connects.
+  useEffect(() => {
+    if (!focused || !hasBackend()) return;
+    void Backend.startCollector(focused);
+    return () => {
+      void Backend.stopCollector(focused);
+    };
+  }, [focused]);
+
+  const cpu = live.cpu;
+  const mem = live.memory;
+  const memPct =
+    mem && mem.total_bytes > 0 ? (mem.used_bytes / mem.total_bytes) * 100 : null;
 
   return (
     <div className="space-y-6 pb-12">
@@ -91,12 +125,38 @@ export const CommandCenter: React.FC = () => {
           KyvonOPS promises and what it currently measures stays visible.
         */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mt-6 pt-6 border-t border-border/60">
-          <PendingSignal icon={Cpu} label="Resource utilization" source="kyvon-telemetry over SSH" />
-          <PendingSignal icon={Layers} label="Capacity headroom" source="kyvon-diagnostics::capacity" />
-          <PendingSignal icon={Activity} label="Operational risk" source="kyvon-diagnostics::outage_risk" />
-          <PendingSignal icon={Shield} label="Security posture" source="passive security scan" />
+          <Signal
+            icon={Cpu}
+            label="CPU"
+            source="kyvon-telemetry over SSH"
+            value={cpu ? `${cpu.total.toFixed(1)}%` : null}
+            detail={cpu ? `load ${cpu.load[0].toFixed(2)} · ${cpu.cores.length} cores` : null}
+          />
+          <Signal
+            icon={Layers}
+            label="Memory"
+            source="kyvon-telemetry over SSH"
+            value={memPct !== null ? `${memPct.toFixed(1)}%` : null}
+            detail={
+              mem ? `${formatBytes(mem.used_bytes)} of ${formatBytes(mem.total_bytes)}` : null
+            }
+          />
+          <Signal
+            icon={Activity}
+            label="Operational risk"
+            source="kyvon-diagnostics::outage_risk"
+          />
+          <Signal icon={Shield} label="Security posture" source="passive security scan" />
         </div>
       </div>
+
+      {live.stoppedReason && (
+        <NoDataState
+          variant="failed"
+          title="Telemetry stopped"
+          detail={live.stoppedReason}
+        />
+      )}
 
       {result === null ? (
         <NoDataState variant="empty" title="Reading local inventory…" detail="Querying the local SQLite store." />
