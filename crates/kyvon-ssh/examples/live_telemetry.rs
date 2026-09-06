@@ -125,6 +125,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for frame in &frames {
                         println!("  {}", serde_json::to_string(&frame.payload)?);
                     }
+                    // Show what would be persisted, so the storage contract
+                    // is visible against real data rather than only fixtures.
+                    let rows: Vec<_> = frames
+                        .iter()
+                        .flat_map(kyvon_telemetry::metric_rows)
+                        .collect();
+                    if !rows.is_empty() {
+                        println!("  -> {} metric row(s):", rows.len());
+                        for (key, _, value) in &rows {
+                            println!("       {key} = {value:.2}");
+                        }
+                    }
+
                     // Two blocks means a delta existed and a rate was computed.
                     if blocks >= 2 && !frames.is_empty() {
                         println!("\nMEASURED: {} frame(s) from real host data.", frames.len());

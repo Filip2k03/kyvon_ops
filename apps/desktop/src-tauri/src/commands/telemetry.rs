@@ -14,8 +14,9 @@ use std::sync::Arc;
 
 use kyvon_core::KyvonEvent;
 use kyvon_ssh::session::StreamItem;
+use kyvon_storage::MetricRepo;
 use kyvon_telemetry::collector::{BlockReader, Emit, COLLECTOR_SCRIPT};
-use kyvon_telemetry::{frames_from_block, TelemetryState};
+use kyvon_telemetry::{frames_from_block, metric_rows, TelemetryState};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex;
 
@@ -73,6 +74,7 @@ pub async fn start_collector(
         .map_err(|e| e.to_string())?;
 
     let collectors = state.collectors.clone();
+    let metrics = MetricRepo::new(state.db.clone());
     let server_id = id.clone();
     let task = tauri::async_runtime::spawn(async move {
         let mut reader = BlockReader::new();
@@ -83,7 +85,29 @@ pub async fn start_collector(
                 StreamItem::Line(line) => match reader.push_line(&line) {
                     Ok(Some(Emit::Hello { .. })) => {}
                     Ok(Some(Emit::Block(block))) => {
-                        for frame in frames_from_block(&block, &mut telemetry) {
+                        let frames = frames_from_block(&block, &mut telemetry);
+
+                        // Persist before emitting. The UI redraws from the
+                        // event either way, but a sample that is only shown
+                        // and never stored cannot be looked at again — and
+                        // capacity headroom, forecasting and outage risk are
+                        // all questions about history, not about this instant.
+                        let rows: Vec<_> = frames.iter().flat_map(metric_rows).collect();
+                        if !rows.is_empty() {
+                            if let Err(e) = metrics.insert_samples(&server_id, &rows).await {
+                                // A write failure must not stop the stream:
+                                // live monitoring is still useful without
+                                // history, and silently ending the collector
+                                // would be the worse failure.
+                                emit_stopped(
+                                    &app,
+                                    &server_id,
+                                    Some(format!("telemetry is live but not being recorded: {e}")),
+                                );
+                            }
+                        }
+
+                        for frame in frames {
                             emit_event(
                                 &app,
                                 KyvonEvent::Telemetry {

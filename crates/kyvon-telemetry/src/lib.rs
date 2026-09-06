@@ -28,5 +28,5 @@ pub mod state;
 
 pub use collector::{Block, Section, COLLECTOR_SCRIPT, COLLECTOR_VERSION};
 pub use protocol::{decode_line, encode_frame};
-pub use sample::frames_from_block;
+pub use sample::{frames_from_block, metric_rows};
 pub use state::TelemetryState;
