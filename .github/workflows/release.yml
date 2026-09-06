@@ -134,24 +134,8 @@ jobs:
         run: cd apps/desktop && bun install --frozen-lockfile
 
       - name: Build Desktop Bundle
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          projectPath: ./apps/desktop
-          args: ${{ matrix.args }}
-          tagName: ${{ github.ref_name }}
-          releaseName: 'KyvonOPS ${{ github.ref_name }}'
-          releaseDraft: true
-          prerelease: true
+        working-directory: apps/desktop
+        run: bun run tauri build ${{ matrix.args }}
 
       - name: Upload installer files
         uses: actions/upload-artifact@v4
@@ -160,7 +144,6 @@ jobs:
           if-no-files-found: error
           path: |
             apps/desktop/src-tauri/target/**/bundle/dmg/*.dmg
-            apps/desktop/src-tauri/target/**/bundle/macos/*.app
             apps/desktop/src-tauri/target/**/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/**/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/**/bundle/deb/*.deb
@@ -198,7 +181,24 @@ jobs:
         with:
           name: SHA256SUMS
           path: SHA256SUMS.txt
-      - name: Attach checksums to the draft GitHub Release
+
+      - name: Download release files into one directory
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish draft prerelease with verified assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${GITHUB_REF_NAME}" SHA256SUMS.txt --repo "${GITHUB_REPOSITORY}" --clobber
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(find release-assets -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -print | sort)
+          test "${#assets[@]}" -gt 0
+          cp SHA256SUMS.txt release-assets/SHA256SUMS.txt
+          gh release create "${GITHUB_REF_NAME}" "${assets[@]}" release-assets/SHA256SUMS.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft --prerelease \
+            --title "KyvonOPS ${GITHUB_REF_NAME}" \
+            --notes "V4.1 desktop prerelease. Assets were built from ${GITHUB_SHA}; verify SHA256SUMS.txt before installation. Signing and clean-install verification remain release gates."
