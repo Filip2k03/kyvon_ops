@@ -2507,7 +2507,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-cli"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "chrono",
  "kyvon-core",
@@ -2521,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-core"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "chrono",
  "serde",
@@ -2532,7 +2532,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-diagnostics"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "kyvon-core",
  "serde",
@@ -2542,7 +2542,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-mcp"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "async-trait",
  "kyvon-core",
@@ -2555,7 +2555,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-ops"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2575,7 +2575,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-policy"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "async-trait",
  "kyvon-core",
@@ -2591,7 +2591,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-security"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "kyvon-core",
  "serde",
@@ -2599,7 +2599,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-ssh"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2618,7 +2618,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-storage"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "kyvon-core",
  "serde",
@@ -2631,7 +2631,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-telemetry"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "kyvon-core",
  "serde",
@@ -2640,7 +2640,7 @@ dependencies = [
 
 [[package]]
 name = "kyvon-topology"
-version = "0.1.0"
+version = "4.1.0"
 dependencies = [
  "kyvon-core",
  "serde",
