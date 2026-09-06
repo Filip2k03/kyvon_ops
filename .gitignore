@@ -16,6 +16,7 @@ apps/desktop/*.config.js
 .env
 .env.*
 !.env.example
+.agents/
 test-results/
 playwright-report/
 assets/blender/exports/
