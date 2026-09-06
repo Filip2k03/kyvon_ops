@@ -1,8 +1,42 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
 import { ArrowRight, Download, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
 
 const repository = 'https://github.com/Filip2k03/kyvon_ops';
 const linkStyle = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-400';
+
+const walkthrough = [
+  { name: 'Server inventory', title: 'Start with the servers you own.', description: 'Create a local connection profile with your hostname, SSH username, and authentication method. The installed app stores the profile on your workstation.', steps: ['Add a server profile', 'Review the SSH host fingerprint', 'Connect and collect available host data'], note: 'Saving a profile does not prove connectivity. Host access must be verified separately.' },
+  { name: 'Diagnostics', title: 'Follow the evidence to the affected service.', description: 'The V3.0 design connects host telemetry, applications, and dependencies so you can investigate an incident with context.', steps: ['Select the affected host or application', 'Review available measurements and recent changes', 'Evaluate possible causes and confidence'], note: 'Diagnostics are under development. Missing measurements must be shown as unavailable.' },
+  { name: 'AI approvals', title: 'Review an operation before it changes a host.', description: 'Codex Astra, Claude Opus, and Agy Gemini 3.8 are intended to use the same typed MCP tools, target scopes, and policy rules.', steps: ['Inspect the requested action and exact target', 'Review risk, expected impact, and permissions', 'Approve through a trusted flow, then verify the result'], note: 'The public preview cannot approve or execute operations. The full approval-to-execution flow still requires release validation.' },
+];
+
+function AppPreview() {
+  const [selected, setSelected] = useState(0);
+  const item = walkthrough[selected];
+  return (
+    <section id="app-preview" className="scroll-mt-24 border-t border-slate-800 py-16">
+      <p className="text-sm font-medium text-sky-400">Explore the desktop concept</p>
+      <h2 className="mt-3 text-3xl font-semibold tracking-tight">See where your next operation begins.</h2>
+      <p className="mt-4 max-w-2xl leading-7 text-slate-400">An interactive product walkthrough, with no server connection or live metrics. It explains the experience being developed for installed KyvonOPS users.</p>
+      <div className="mt-8 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/50">
+        <div className="flex flex-wrap justify-between gap-3 border-b border-slate-800 px-6 py-4 text-xs"><span className="font-semibold tracking-wider">KYVONOPS / WORKSPACE</span><span className="text-amber-300">Illustrative interface preview</span></div>
+        <div className="grid md:grid-cols-[210px_1fr]">
+          <div aria-label="Preview topics" className="flex flex-wrap gap-2 border-b border-slate-800 p-4 md:flex-col md:border-b-0 md:border-r">
+            {walkthrough.map((topic, index) => <button key={topic.name} type="button" aria-pressed={selected === index} onClick={() => setSelected(index)} className={`min-h-11 rounded-lg px-4 py-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400 ${selected === index ? 'bg-sky-400/10 text-sky-300' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>{topic.name}</button>)}
+          </div>
+          <div className="p-6 sm:p-8" aria-live="polite">
+            <h3 className="text-2xl font-medium">{item.title}</h3>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">{item.description}</p>
+            <ol className="mt-6 space-y-3">{item.steps.map((step, index) => <li key={step} className="flex items-center gap-4 rounded-lg border border-slate-800 bg-slate-950/30 p-4 text-sm"><span className="font-mono text-sky-400">0{index + 1}</span>{step}</li>)}</ol>
+            <p className="mt-5 text-xs leading-6 text-slate-400">{item.note}</p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 flex flex-wrap gap-3"><Link className={`${linkStyle} border border-slate-700 hover:bg-slate-800`} to="/getting-started">How installation works <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link><a href={`${repository}/blob/main/PROMPTS.md`} target="_blank" rel="noopener noreferrer" className={`${linkStyle} text-slate-400 hover:text-white`}>Read the V3.0 specification</a></div>
+    </section>
+  );
+}
 
 function Releases() {
   return (
@@ -82,6 +116,7 @@ function Overview() {
           return <article key={String(title)}><FeatureIcon aria-hidden="true" className="h-6 w-6 text-sky-400" /><h2 className="mt-5 text-lg font-medium">{String(title)}</h2><p className="mt-3 text-sm leading-6 text-slate-400">{String(description)}</p></article>;
         })}
       </section>
+      <AppPreview />
       <Releases />
       <GettingStarted />
     </>
@@ -95,13 +130,14 @@ export function PublicWebsite() {
       <header className="border-b border-slate-800">
         <nav aria-label="Public navigation" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
           <Link to="/" className="flex min-h-11 items-center gap-3 font-semibold tracking-wide"><span className="rounded-lg bg-sky-400 p-2 text-slate-950"><Layers aria-hidden="true" className="h-5 w-5" /></span> KyvonOPS</Link>
-          <div className="flex flex-wrap items-center gap-5 text-sm text-slate-300"><Link className="py-3 hover:text-white" to="/getting-started">Getting started</Link><Link className="py-3 hover:text-white" to="/downloads">Downloads</Link><a className="py-3 hover:text-white" href={repository} target="_blank" rel="noopener noreferrer">GitHub</a></div>
+          <div className="flex flex-wrap items-center gap-5 text-sm text-slate-300"><Link className="py-3 hover:text-white" to="/preview">App preview</Link><Link className="py-3 hover:text-white" to="/getting-started">Getting started</Link><Link className="py-3 hover:text-white" to="/downloads">Downloads</Link><a className="py-3 hover:text-white" href={repository} target="_blank" rel="noopener noreferrer">GitHub</a></div>
         </nav>
       </header>
       <main id="public-content" className="mx-auto max-w-6xl px-6">
         <Routes>
           <Route path="/" element={<Overview />} />
           <Route path="/landing" element={<Navigate to="/" replace />} />
+          <Route path="/preview" element={<><h1 className="pt-12 text-4xl font-semibold">Inside the KyvonOPS app</h1><AppPreview /></>} />
           <Route path="/downloads" element={<><h1 className="pt-12 text-4xl font-semibold">Get KyvonOPS</h1><Releases /><GettingStarted /></>} />
           <Route path="/getting-started" element={<><h1 className="pt-12 text-4xl font-semibold">Start with your own infrastructure</h1><GettingStarted /></>} />
           <Route path="*" element={<Navigate to="/" replace />} />

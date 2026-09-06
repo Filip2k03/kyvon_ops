@@ -6,7 +6,7 @@ The public website is a product and release-information site. It does not provid
 
 `apps/desktop/src/App.tsx` selects the public website in a browser. Inside Tauri it lazily loads `DesktopApp.tsx`, which owns infrastructure routes and the application shell. This is a presentation boundary; authorization must also be enforced by native commands and MCP policy.
 
-Public routes are `/`, `/downloads`, and `/getting-started`. `/landing` and unknown paths, including operational deep links, redirect to `/`. The public entry does not import operational screens eagerly. Hosting must serve `index.html` for browser routes; the existing Pages `_redirects` file provides that fallback.
+Public routes are `/`, `/preview`, `/downloads`, and `/getting-started`. `/landing` and unknown paths, including operational deep links, redirect to `/`. The preview is an explicitly illustrative walkthrough of inventory, diagnostics, and approvals; it cannot connect to infrastructure. The public entry does not import operational screens eagerly. Hosting must serve `index.html` for browser routes; the Pages `_redirects` file provides that fallback.
 
 ## Installation for other users
 

@@ -44,4 +44,14 @@ describe('public website boundary', () => {
     expect(html).toContain('your own server address and SSH identity');
     expect(html).not.toContain('127.0.0.1');
   });
+
+  test('app preview is explicitly illustrative and never collects infrastructure credentials', () => {
+    const html = render('/preview');
+    expect(html).toContain('Illustrative interface preview');
+    expect(html).toContain('no server connection or live metrics');
+    expect(html).toContain('Server inventory');
+    expect(html).toContain('AI approvals');
+    expect(html).not.toContain('<input');
+    expect(html).not.toContain('<iframe');
+  });
 });

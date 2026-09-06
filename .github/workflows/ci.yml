@@ -11,10 +11,38 @@ jobs:
     name: Rust Workspace Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      # The workspace links against system libraries that the runner image does
+      # not carry, and without them clippy and the test suite fail during the
+      # build scripts rather than on any code:
+      #
+      #   libdbus-1-dev            keyring (kyvon-ssh) -> Secret Service on Linux
+      #   libwebkit2gtk-4.1-dev    the webview behind Tauri
+      #   libgtk-3-dev, libglib2.0-dev, librsvg2-dev, libayatana-appindicator3-dev
+      #                            the rest of the Tauri desktop stack
+      #
+      # `.github/workflows/release.yml` already installs the Tauri set for its
+      # Linux bundle; this job needs them too now that apps/desktop/src-tauri is
+      # a workspace member and therefore covered by --workspace.
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libdbus-1-dev \
+            libssl-dev \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - uses: Swatinem/rust-cache@v2
+
       - name: Rustfmt Check
         run: cargo fmt --all -- --check
       - name: Clippy Static Analysis
@@ -26,7 +54,7 @@ jobs:
     name: Desktop Frontend Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

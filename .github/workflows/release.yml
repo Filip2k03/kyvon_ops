@@ -6,8 +6,32 @@ on:
       - 'v*'
 
 jobs:
+  # `agent/` currently holds only bootstrap.sh, which pipes a POSIX collector
+  # over stdin; the compiled musl agent crate does not exist yet. Building it
+  # unconditionally made every tag push fail on a missing manifest, and because
+  # the desktop bundles declared `needs: build-agent-matrix`, no release could
+  # ever be produced. This job now detects the crate and skips cleanly until it
+  # lands, rather than blocking the desktop and mobile artifacts behind it.
+  detect-agent:
+    name: Detect Agent Crate
+    runs-on: ubuntu-latest
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: check
+        run: |
+          if [ -f agent/Cargo.toml ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::agent/Cargo.toml not present; skipping the musl agent build."
+          fi
+
   build-agent-matrix:
     name: Build Static Musl Agents
+    needs: detect-agent
+    if: needs.detect-agent.outputs.present == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -16,7 +40,7 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-musleabi
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -33,7 +57,11 @@ jobs:
           path: agent/target/${{ matrix.target }}/release/kyvon-agent
 
   build-desktop-apps:
-    needs: build-agent-matrix
+    needs: [detect-agent, build-agent-matrix]
+    # `always()` so a skipped agent build does not cascade into a skipped
+    # desktop build; the guard still fails the release if the agent job ran
+    # and genuinely failed.
+    if: always() && needs.build-agent-matrix.result != 'failure'
     name: Build Desktop Bundles (${{ matrix.platform }})
     strategy:
       fail-fast: false
@@ -65,6 +93,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
       - name: Download Staged Agent Binaries
+        if: needs.detect-agent.outputs.present == 'true'
         uses: actions/download-artifact@v4
         with:
           path: apps/desktop/src-tauri/binaries/

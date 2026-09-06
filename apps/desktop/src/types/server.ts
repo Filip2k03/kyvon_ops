@@ -16,17 +16,17 @@ import { TimestampMs } from './common';
  * both, and check the `#[serde]` attributes rather than assuming a convention.
  */
 
-/** Externally-tagged enum: `"Password"`, `"Agent"`, or `{ PrivateKey: {...} }`. */
+/** Matches Rust's internally tagged, snake_case AuthMethod enum. */
 export type AuthMethod =
-  | 'Password'
-  | 'Agent'
-  | { PrivateKey: { path: string; encrypted: boolean } };
+  | { type: 'password' }
+  | { type: 'agent' }
+  | { type: 'private_key'; path: string; encrypted: boolean };
 
 /** Human-readable summary of an `AuthMethod` for display. */
 export function describeAuth(auth: AuthMethod): string {
-  if (auth === 'Password') return 'Password (keychain)';
-  if (auth === 'Agent') return 'SSH agent';
-  return auth.PrivateKey.encrypted ? 'Private key (passphrase in keychain)' : 'Private key';
+  if (auth.type === 'password') return 'Password (keychain)';
+  if (auth.type === 'agent') return 'SSH agent';
+  return auth.encrypted ? 'Private key (passphrase in keychain)' : 'Private key';
 }
 
 /** `#[serde(rename_all = "snake_case")]` on the Rust enum. */
