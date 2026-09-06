@@ -45,4 +45,8 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 panic = "abort"
-strip = true
+# Keep proc-macro dylibs loadable on macOS while Cargo is compiling the
+# release graph. Final application bundles can be stripped by the packaging
+# tool after compilation; stripping the intermediate dylibs breaks rustc with
+# a malformed LINKEDIT segment.
+strip = false
