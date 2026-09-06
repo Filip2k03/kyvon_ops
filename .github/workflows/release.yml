@@ -1,5 +1,9 @@
 name: Production Multi-Platform Release
 
+permissions:
+  contents: write
+  actions: read
+
 on:
   push:
     tags:
@@ -148,3 +152,44 @@ jobs:
           releaseName: 'KyvonOPS ${{ github.ref_name }}'
           releaseDraft: false
           prerelease: false
+
+      - name: Stage bundle files for checksum publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-bundle-${{ matrix.target }}
+          path: apps/desktop/src-tauri/target/release/bundle
+          if-no-files-found: error
+
+  publish-checksums:
+    name: Publish SHA256SUMS
+    needs: build-desktop-apps
+    if: needs.build-desktop-apps.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download desktop bundles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-bundle-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksum manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > SHA256SUMS
+          while IFS= read -r -d '' file; do
+            name="$(basename "$file")"
+            sha256sum "$file" | awk -v name="$name" '{print $1 "  " name}' >> SHA256SUMS
+          done < <(find artifacts -type f \( \
+            -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.appimage' \
+            -o -name '*.AppImage' -o -name '*.deb' -o -name '*.sig' -o -name '*.tar.gz' \
+          \) -print0 | sort -z)
+          test -s SHA256SUMS
+          sort -u SHA256SUMS -o SHA256SUMS
+          sha256sum -c SHA256SUMS --ignore-missing
+
+      - name: Upload SHA256SUMS to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" SHA256SUMS --clobber
