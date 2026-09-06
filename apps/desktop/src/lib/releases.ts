@@ -158,7 +158,7 @@ export async function fetchLatestRelease(signal?: AbortSignal): Promise<ReleaseS
       return {
         state: 'none',
         detail:
-          'No release has been published yet. KyvonOPS V3.0 is still in development, so there is nothing to install from this page — you can build it from source, or watch the repository to be notified when the first release is tagged.',
+          'No release has been published yet. There is nothing to install from this page — you can build from source, or watch the repository to be notified when the first V4.1 tag is published.',
       };
     }
     if (!response.ok) {

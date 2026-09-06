@@ -34,6 +34,7 @@ describe('V4.1 production security hygiene', () => {
     const headers = read('public/_headers');
     expect(headers).toContain('Strict-Transport-Security');
     expect(headers).toContain("frame-ancestors 'none'");
+    expect(headers).toContain('! Access-Control-Allow-Origin');
     expect(headers).not.toContain('Access-Control-Allow-Origin: *');
   });
 
