@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, useGLTF } from '@react-three/drei';
+import { Bounds, Center, OrbitControls, useGLTF } from '@react-three/drei';
 import type { Group } from 'three';
 import { STATES, type CharacterState, type Pet } from './character';
 
@@ -82,19 +82,31 @@ export function PetViewer({ pet, state = 'idle' }: { pet: Pet; state?: Character
       </p>
 
       {showCanvas ? (
-        <Canvas camera={{ position: [0, 1.2, 3.2], fov: 40 }} dpr={[1, 1.75]}>
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[3, 4, 2]} intensity={1.4} />
-          <directionalLight position={[-3, 1, -2]} intensity={0.5} color="#38bdf8" />
+        <Canvas camera={{ position: [0, 0.6, 6], fov: 35 }} dpr={[1, 1.75]}>
+          <ambientLight intensity={0.75} />
+          <directionalLight position={[3, 4, 2]} intensity={1.5} />
+          <directionalLight position={[-3, 1, -2]} intensity={0.6} color="#38bdf8" />
           <Suspense fallback={null}>
-            <Model url={pet.model} animate={!reduced} />
+            {/*
+              `Bounds` frames whatever it wraps, and `Center` puts the model's
+              own centre at the origin. Together they keep every companion
+              fully in frame regardless of its proportions — a fixed camera
+              cropped the taller silhouettes, and the roster deliberately
+              varies them.
+            */}
+            <Bounds fit clip observe margin={1.15}>
+              <Center>
+                <Model url={pet.model} animate={!reduced} />
+              </Center>
+            </Bounds>
           </Suspense>
           <OrbitControls
+            makeDefault
             enablePan={false}
             enableZoom
             autoRotate={false}
-            minDistance={2}
-            maxDistance={6}
+            minDistance={2.5}
+            maxDistance={12}
           />
         </Canvas>
       ) : (

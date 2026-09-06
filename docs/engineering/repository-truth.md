@@ -3,7 +3,7 @@
 What is actually implemented in `kyvon_ops`, established by reading and running
 the code rather than by reading claims about it.
 
-**Verified:** 2026-09-06, commit `f008f5d`, branch `main`.
+**Verified:** 2026-09-06, commit `39aafaf`, branch `main`.
 
 Every row cites evidence you can re-run. Where a document and the code
 disagree, the code wins. Regenerate this file before trusting it — a stale
@@ -25,9 +25,9 @@ CI runs all four on every push and is green.
 | Area | State | Evidence |
 | --- | --- | --- |
 | **Rust workspace** | Works | 9 crates + 2 apps. `cargo test --workspace` = 196 tests, clippy `-D warnings` clean. |
-| **Desktop shell (Tauri)** | Works | `apps/desktop/src-tauri` compiles. Was excluded from `workspace.members` and had never built until 2026-09-06; four faults were hidden behind that. **Not yet launched** — no one has run `bun run tauri dev` and seen a window. |
+| **Desktop shell (Tauri)** | Works | `apps/desktop/src-tauri` compiles and `bun run tauri dev` was launched successfully on 2026-09-06; Vite bound to port 1420 and the native `kyvon-ops` process started. |
 | **Frontend build** | Works | `bun run build`, 26 tests. React 19 + Vite + Tailwind + Zustand. |
-| **Public website** | Works | Served at kyvonops.sys.thuyakyaw.com via Cloudflare Pages, auto-deploys from `main`. `App.tsx` routes browser → `PublicWebsite`, Tauri → `DesktopApp`. |
+| **Public website** | Works locally, public route pending | `App.tsx` routes browser → `PublicWebsite`, Tauri → `DesktopApp`. The production bundle was installed and verified through Nginx on the VPN test host at `127.0.0.1:8080`; Cloudflare DNS and Tunnel are not configured yet, so the public hostname is not claimed as live. |
 | **SSH transport** | Works | `kyvon-ssh`: `russh`, one multiplexed session per server, `exec`/`stream`/PTY/SFTP. |
 | **Host-key verification** | Works | `HostKeyVerifier` is a required constructor argument; no path returns trusted without it. `DesktopVerifier` consults `known_hosts`, prompts on unknown *and changed* keys, times out to **reject**. Prompt replay is tested. |
 | **Credential storage** | Works | `kyvon-ssh/src/vault.rs` → OS keychain under `com.kyvon.ops`. SQLite stores `auth_json` (method shape), never the secret. |
@@ -57,6 +57,7 @@ CI runs all four on every push and is green.
 | **Kyvon agent** | Missing | `agent/` holds only `bootstrap.sh` (embedded POSIX collector). No Rust crate. The release workflow detects its absence and skips. |
 | **CI** | Works | Green. Had **never passed** before 2026-09-06 — the Rust job never installed `libdbus-1-dev` for the `keyring` crate. |
 | **Releases** | Works, unused | `release.yml` was structurally unable to produce artifacts (built a non-existent `agent/Cargo.toml`, and desktop bundles declared `needs:` on it). Fixed. **No tag has been pushed, so no release exists** — the downloads page correctly says so. |
+| **Remote deployment test** | Verified locally on VPN host | `scripts/deploy-host.sh` deployed the prebuilt static bundle without installing Bun; `/healthz`, SPA deep links, security headers, and disabled updater metadata were verified on the approved test host. |
 | **Schema mirror** | Works | `kyvon-core/tests/schema.rs` fails the build when a TypeScript mirror drifts. Both directions verified by reproducing real bugs. |
 
 ## Code hygiene
@@ -105,8 +106,8 @@ row above — nothing in this repository has been run against a live server.
 
 ## Next, in dependency order
 
-1. **Launch the desktop app once.** It compiles; nobody has seen it open. Everything below assumes it runs.
-2. **Prove one real connection** — a live host, host-key prompt, probe, telemetry. This converts six "unproven" rows into evidence.
-3. **Terminal** (Codex, assigned).
-4. **Wire MCP tools to `AppState`** so `kyvon_server_health` returns real data, then gate writes on `ApprovalGate`.
-5. **Call `kyvon-topology` and `kyvon-diagnostics`** — both fully built and tested, both unreachable.
+1. **Prove one real desktop connection** — add the approved test host, verify the host-key prompt, then run probe and telemetry. This converts the SSH-path rows into evidence.
+2. **Terminal** (Codex, assigned).
+3. **Wire MCP tools to `AppState`** so `kyvon_server_health` returns real data, then gate writes on `ApprovalGate`.
+4. **Call `kyvon-topology` and `kyvon-diagnostics`** — both fully built and tested, both unreachable.
+5. **Configure and verify the Cloudflare Tunnel** using `docs/CLOUDFLARE_TUNNEL_SETUP.md`; do not claim the public hostname until HTTPS health checks pass.
