@@ -9,8 +9,8 @@ import { ReverseProxyGenerator } from '../../lib/api/reverseProxy';
 import { CloudflareTunnelGenerator } from '../../lib/api/cloudflareTunnel';
 
 export const CloudflareManager: React.FC = () => {
-  const [apiToken, setApiToken] = useState(() => localStorage.getItem('cf_api_token') || '');
-  const [isSavedToken, setIsSavedToken] = useState(() => !!localStorage.getItem('cf_api_token'));
+  const [apiToken, setApiToken] = useState('');
+  const [isSavedToken, setIsSavedToken] = useState(false);
   const [zones, setZones] = useState<CloudflareZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('');
   const [dnsRecords, setDnsRecords] = useState<CloudflareDnsRecord[]>([]);
@@ -35,22 +35,29 @@ export const CloudflareManager: React.FC = () => {
   });
 
   // Reverse Proxy Generator State
-  const [proxyTarget, setProxyTarget] = useState('127.0.0.1:3000');
+  const [proxyTarget, setProxyTarget] = useState('');
   const [proxyDomain, setProxyDomain] = useState('');
   const [generatedProxyType, setGeneratedProxyType] = useState<'caddy' | 'nginx'>('caddy');
   const [generatedConfig, setGeneratedConfig] = useState('');
 
   // Cloudflare Free Plan Tunnel State
-  const [tunnelId, setTunnelId] = useState('tun_prod_kyvon');
-  const [tunnelToken, setTunnelToken] = useState('eyJhIjoiY2xvdWRmbGFyZSIsInQiOiJmcmVlX3BsYW5fdHVubmVsIn0=');
+  const [tunnelId, setTunnelId] = useState('');
+  const [tunnelToken, setTunnelToken] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'dns' | 'tunnel' | 'proxy'>('dns');
   const [generatedTunnelScript, setGeneratedTunnelScript] = useState('');
 
+  useEffect(() => {
+    try {
+      localStorage.removeItem('cf_api_token');
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const handleSaveToken = () => {
     if (!apiToken.trim()) return;
-    localStorage.setItem('cf_api_token', apiToken.trim());
     setIsSavedToken(true);
-    setSuccessMsg('Cloudflare API Token securely saved.');
+    setSuccessMsg('Token held in this window only. It is not written to disk.');
     fetchZones(apiToken.trim());
   };
 
@@ -167,17 +174,21 @@ export const CloudflareManager: React.FC = () => {
   };
 
   const handleGenerateProxy = () => {
+    if (!proxyDomain.trim() || !proxyTarget.trim()) {
+      setError('Enter the public hostname and the private origin address before generating a proxy config.');
+      return;
+    }
     const config = generatedProxyType === 'caddy'
       ? ReverseProxyGenerator.generateCaddyfile({
-          domain: proxyDomain || 'api.example.com',
-          upstreamUrl: proxyTarget || '127.0.0.1:3000',
+          domain: proxyDomain.trim(),
+          upstreamUrl: proxyTarget.trim(),
           enableWebsockets: true,
           enableGzip: true,
           sslMode: 'letsencrypt',
         })
       : ReverseProxyGenerator.generateNginxConfig({
-          domain: proxyDomain || 'api.example.com',
-          upstreamUrl: proxyTarget || '127.0.0.1:3000',
+          domain: proxyDomain.trim(),
+          upstreamUrl: proxyTarget.trim(),
           enableWebsockets: true,
           enableGzip: true,
           sslMode: 'letsencrypt',
@@ -531,7 +542,7 @@ export const CloudflareManager: React.FC = () => {
                 type="text"
                 value={proxyTarget}
                 onChange={(e) => setProxyTarget(e.target.value)}
-                placeholder="http://127.0.0.1:3000"
+                placeholder="private origin on the VPS (loopback or unix socket)"
                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white"
               />
             </div>
@@ -550,13 +561,17 @@ export const CloudflareManager: React.FC = () => {
           <div className="flex flex-wrap gap-3 mb-6">
             <button
               onClick={() => {
+                if (!tunnelId.trim() || !proxyDomain.trim() || !proxyTarget.trim() || !tunnelToken.trim()) {
+                  setError('Tunnel name, public hostname, private origin, and tunnel token are required. No placeholder token is shipped.');
+                  return;
+                }
                 const script = CloudflareTunnelGenerator.generateDeploymentScript({
-                  tunnelId,
-                  tunnelName: tunnelId,
+                  tunnelId: tunnelId.trim(),
+                  tunnelName: tunnelId.trim(),
                   accountTag: 'free_tier',
-                  domain: proxyDomain || 'app.example.com',
-                  localService: proxyTarget || 'http://127.0.0.1:3000',
-                }, tunnelToken);
+                  domain: proxyDomain.trim(),
+                  localService: proxyTarget.trim(),
+                }, tunnelToken.trim());
                 setGeneratedTunnelScript(script);
               }}
               className="px-4 py-2 bg-amber-500 hover:bg-amber-500/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center space-x-2"
@@ -670,7 +685,7 @@ export const CloudflareManager: React.FC = () => {
               type="text"
               value={proxyTarget}
               onChange={(e) => setProxyTarget(e.target.value)}
-              placeholder="127.0.0.1:3000 or unix:/run/api.sock"
+              placeholder="private origin hostname:port or unix socket"
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xs text-white"
             />
           </div>

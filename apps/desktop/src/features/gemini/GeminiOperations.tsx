@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Sparkles, Key, Layout, Send, CheckCircle, AlertCircle, 
   ShieldCheck, Smartphone, Palette, Copy, RotateCcw,
@@ -7,7 +7,8 @@ import {
 import { GeminiClient } from '../../lib/api/gemini';
 
 export const GeminiOperations: React.FC = () => {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [apiKey, setApiKey] = useState('');
+  const [sessionHeld, setSessionHeld] = useState(false);
   const [model, setModel] = useState<'gemini-1.5-pro' | 'gemini-1.5-flash' | 'gemini-2.0-flash'>('gemini-1.5-pro');
   const [focusArea, setFocusArea] = useState<'humanize' | 'icons' | 'mobile' | 'contrast'>('humanize');
   const [promptInput, setPromptInput] = useState('');
@@ -16,9 +17,17 @@ export const GeminiOperations: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    try {
+      localStorage.removeItem('gemini_api_key');
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const handleSaveKey = () => {
     if (!apiKey.trim()) return;
-    localStorage.setItem('gemini_api_key', apiKey.trim());
+    setSessionHeld(true);
     setError(null);
   };
 
@@ -108,9 +117,12 @@ export const GeminiOperations: React.FC = () => {
             className="px-5 py-2 bg-info hover:bg-info/90 text-background font-semibold text-sm rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
             <CheckCircle className="w-4 h-4" />
-            <span>Connect Key</span>
+            <span>{sessionHeld ? 'Held in this window' : 'Use in this window'}</span>
           </button>
         </div>
+        <p className="mt-2 text-[11px] text-secondary">
+          The key stays in memory for this screen only. It is not written to disk, localStorage, or the OS keychain in this build. Closing the app forgets it.
+        </p>
 
         {error && (
           <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-sm flex items-center space-x-2">

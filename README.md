@@ -16,7 +16,9 @@ For the controlled VPN-based remote deployment and installation verification seq
 
 The V4.1 evidence matrix and release gate are maintained in [production readiness](docs/V4.1_PRODUCTION_READINESS.md) and [release gate](docs/V4.1_RELEASE_GATE.md). They record verified checks and explicit blockers; they do not substitute for deployment evidence.
 
-The intended public installation sequence and shared security boundary are documented in the [V4.1 installation flow](docs/INSTALLATION_FLOW.md).
+The public website is `https://kyvonops.sys.thuyakyaw.com/`. It serves the static product site over HTTPS. It is not a hosted SSH control plane.
+
+See [V4.1 security](docs/V4.1_SECURITY.md) for the implemented boundary (keychain, host keys, MCP capabilities, redaction). Pairing, hosted MFA, and a public API are not part of this build.
 
 Monetization is isolated to optional public/download sponsor placements; the operational control plane remains ad-free. See the [V4.1 monetization boundary](docs/MONETIZATION.md).
 
