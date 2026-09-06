@@ -147,3 +147,4 @@ test -f "${FRONTEND_DIR}/bun.lock" || {
 cd "${FRONTEND_DIR}"
 bun install --frozen-lockfile
 echo "frontend=installed"
+echo "desktop-build=./scripts/build-desktop.sh"
