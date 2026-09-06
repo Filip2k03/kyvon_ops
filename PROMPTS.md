@@ -36,7 +36,7 @@ KyvonOPS must combine:
 18. Codex integration
 19. Claude Code integration
 20. Gemini CLI/agent integration
-21. Cursor CLI integration
+21. Agent capability profiles and integration boundaries
 22. Secure credential custody
 23. Audit and approval workflows
 
@@ -89,10 +89,9 @@ Build:
 AI agents:
 
 ```text
-Codex
-Claude Code
-Gemini CLI / Agent
-Cursor CLI
+Codex Astra
+Claude Opus
+Agy Gemini 3.8
         │
         ▼
    KyvonOPS MCP
@@ -1706,7 +1705,6 @@ Examples:
 codex-production-agent
 claude-production-agent
 gemini-dev-agent
-cursor-development-agent
 ```
 
 ---
@@ -1992,23 +1990,6 @@ and receive the same policy-controlled capabilities.
 
 ---
 
-# 56. CURSOR CLI
-
-Support Cursor MCP configuration.
-
-Allow:
-
-```text
-project scope
-user scope
-server scope
-tool permissions
-```
-
-Document safe installation.
-
----
-
 # 57. MULTI-AGENT CONTROL
 
 Create:
@@ -2029,8 +2010,6 @@ Claude
 Gemini
 ● Connected
 
-Cursor
-● Connected
 ```
 
 Show:
@@ -2082,7 +2061,7 @@ Codex deploy
 +
 Claude rollback
 +
-Cursor restart
+Agy restart
 ```
 
 from happening simultaneously.
@@ -2109,7 +2088,7 @@ CLI changes
 Codex changes
 Claude changes
 Gemini changes
-Cursor changes
+Agy changes
 ```
 
 Unified timeline:
@@ -3138,7 +3117,7 @@ Provide scripts/documentation for:
 Codex
 Claude Code
 Gemini CLI
-Cursor CLI
+Agy Gemini 3.8
 ```
 
 But never automatically modify user configuration without explicit authorization.
@@ -3791,7 +3770,6 @@ Phase 8:
 Codex
 Claude
 Gemini
-Cursor
 multi-agent controls
 ```
 
@@ -3874,7 +3852,7 @@ Claude integration tested
 Gemini integration tested
 ✓
 
-Cursor integration tested
+Agy Gemini 3.8 integration tested
 ✓
 
 Secrets never reach AI
@@ -3989,7 +3967,6 @@ It is:
        │            │             │
        └────────────┼─────────────┘
                     │
-                 Cursor
 ```
 
 The defining security boundary is:
@@ -4019,4 +3996,3 @@ The human gets **visibility and control**.
 KyvonOPS gets **custody, policy, verification and audit**.
 
 Build V3.0 around that principle.
-

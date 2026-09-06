@@ -19,7 +19,7 @@ pub mod snapshots;
 
 pub use audit::{AuditEvent, AuditRepo, Outcome};
 pub use db::Database;
-pub use hosts::KnownHostRepo;
+pub use hosts::{HostKeyStatus, KnownHostRepo};
 pub use metrics::MetricRepo;
 pub use notes::{Note, NoteRepo};
 pub use servers::ServerRepo;

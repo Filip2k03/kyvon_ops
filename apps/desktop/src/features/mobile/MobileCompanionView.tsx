@@ -16,7 +16,7 @@ interface ApprovalItem {
   reason: string;
   risk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   impact: string;
-  requestedBy: 'Claude Code' | 'Codex Astra' | 'Agy Gemini 3.8' | 'Cursor CLI';
+  requestedBy: 'Codex Astra' | 'Claude Opus' | 'Agy Gemini 3.8';
   status: 'pending' | 'approved' | 'rejected';
   biometricRequired: boolean;
 }
@@ -40,7 +40,7 @@ export const MobileCompanionView: React.FC = () => {
       reason: 'Invalid configuration reload recovery after upstream proxy update',
       risk: 'LOW',
       impact: 'Zero-downtime worker reload (sub-10ms connection draining)',
-      requestedBy: 'Claude Code',
+      requestedBy: 'Claude Opus',
       status: 'pending',
       biometricRequired: false,
     },
@@ -264,7 +264,7 @@ export const MobileCompanionView: React.FC = () => {
                     <div className="text-xs font-bold text-white">
                       {approvals.filter(a => a.status === 'pending').length} Approvals Pending
                     </div>
-                    <div className="text-[10px] text-amber-300">Action requested by Claude Code & Codex</div>
+                    <div className="text-[10px] text-amber-300">Action requested by Codex Astra, Claude Opus, or Agy Gemini 3.8</div>
                   </div>
                 </div>
                 <ArrowUpRight className="w-4 h-4 text-amber-400" />

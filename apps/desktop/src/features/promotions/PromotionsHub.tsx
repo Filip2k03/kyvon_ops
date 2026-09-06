@@ -162,7 +162,7 @@ export const PromotionsHub: React.FC = () => {
                     `Key Features:\n` +
                     `• One VPS -> Full Digital Twin Topology (Nginx, Docker, systemd, sockets)\n` +
                     `• Domain Resource Attribution & Outage Risk Forecasting\n` +
-                    `• Zero-Secret MCP Gateway for Claude Code, Cursor, and Codex\n` +
+                    `• Zero-Secret MCP Gateway for Codex Astra, Claude Opus, and Agy Gemini 3.8\n` +
                     `• Mobile Command Companion (Android APK / iOS IPA) with Biometrics\n` +
                     `• Cloudflare Free Tier Tunnel Ingress\n\n` +
                     `Live Deployment: ${targetUrl}\nGitHub: ${repoUrl}`,

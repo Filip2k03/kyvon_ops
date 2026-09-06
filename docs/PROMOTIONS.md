@@ -22,7 +22,7 @@ Key things it does differently:
 1. Automatic Infrastructure Discovery: Point KyvonOPS at any Linux VPS via SSH. It reads /proc and /sys with zero external dependencies and maps the full digital twin topology (reverse proxies, containers, systemd units, listening sockets, and inbound DNS).
 2. Domain Resource Attribution: It attributes CPU usage, memory working set, and cgroup v2 pressure stalls back to specific web applications and domains.
 3. Outage Risk Forecasting: Instead of basic ping tests, it tracks memory pressure stalls, inode saturation, TCP backlog drops, and TLS cert expirations to calculate an Outage Risk Score.
-4. Policy-Controlled MCP Gateway: If you use Claude Code, Cursor, or Codex, KyvonOPS provides a capability-based Model Context Protocol server. AI models receive typed diagnostics and can propose repairs, but NEVER receive your SSH private keys or unrestricted shell execution.
+4. Policy-Controlled MCP Gateway: Codex Astra, Claude Opus, and Agy Gemini 3.8 can use KyvonOPS through a capability-based Model Context Protocol server. AI models receive typed diagnostics and can propose repairs, but NEVER receive your SSH private keys or unrestricted shell execution.
 5. Mobile Command Companion: Android (.apk) and iOS (.ipa) companion with offline SQLite caching, QR pairing with ephemeral nonces, and biometric approval gates (Face ID / Touch ID / Fingerprint).
 6. Zero-Open-Port Cloudflare Ingress: Complete integration with Cloudflare Free Tier tunnels, Full Strict Universal SSL, and Bot Fight Mode.
 
@@ -56,7 +56,7 @@ Feedback, questions, and critique are very welcome!
 > 2/7
 
 ### Tweet 3 (AI without Credential Leaks):
-> Want Claude Code, Cursor, or Codex to help debug your servers?
+> Want Codex Astra, Claude Opus, or Agy Gemini 3.8 to help debug your servers?
 > 
 > KyvonOPS includes a policy-controlled MCP gateway. Models get typed, schema-validated capabilities—never your SSH keys, never root shell execution.
 > 
@@ -118,7 +118,7 @@ I've been working on an open-source project called **KyvonOPS** to solve the hea
 ### What it does:
 - **Local-First Discovery**: Point it at any Ubuntu/Debian/RHEL node over standard SSH. It maps processes, systemd units, Docker containers, and Nginx configurations into an interactive topology graph.
 - **True Resource Attribution**: Computes exact CPU/RAM shares per site and domain, monitoring cgroup v2 PSI memory stalls and TCP backlog health.
-- **Model Context Protocol (MCP)**: Safely enables Claude Code, Cursor, or Codex to inspect logs and draft deployment fixes with human-in-the-loop approvals.
+- **Model Context Protocol (MCP)**: Safely enables Codex Astra, Claude Opus, and Agy Gemini 3.8 to inspect logs and draft deployment fixes with human-in-the-loop approvals.
 - **Mobile Companion**: Touch-optimized Android & iOS apps with biometrically-gated actions and streaming logs.
 - **Cloudflare Tunnels**: Free-tier Zero Trust edge ingress without opening port 80/443 on your host.
 

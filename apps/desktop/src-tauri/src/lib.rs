@@ -1,4 +1,5 @@
 mod commands;
+mod hostkey;
 mod state;
 
 use std::sync::Arc;
@@ -37,6 +38,7 @@ pub fn run() {
             app.manage(AppState {
                 db,
                 sessions: Arc::new(Mutex::new(SessionManager::new())),
+                prompts: Arc::new(hostkey::PendingPrompts::default()),
             });
             Ok(())
         })
@@ -46,6 +48,7 @@ pub fn run() {
             commands::servers::delete_server,
             commands::connection::connect,
             commands::connection::disconnect,
+            commands::connection::resolve_host_key,
             commands::terminal::open_terminal,
             commands::terminal::write_terminal,
             commands::terminal::resize_terminal,

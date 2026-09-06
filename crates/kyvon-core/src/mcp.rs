@@ -73,7 +73,7 @@ pub struct McpAuditEntry {
     pub id: String,
     pub timestamp_ms: TimestampMs,
     pub actor: String,
-    pub client_type: String, // Codex, Claude Code, Cursor CLI, Human
+    pub client_type: String, // Codex Astra, Claude Opus, Agy Gemini 3.8, Human
     pub tool: String,
     pub server_id: String,
     pub arguments_redacted: serde_json::Value,

@@ -6,6 +6,18 @@ import { Backend, hasBackend, type Loaded } from '../../lib/backend';
 import { LoadedFallback, NoDataState } from '../../components/ui/NoDataState';
 import { describeAuth, type ServerProfile } from '../../types';
 
+type HostKeyPromptPayload = {
+  prompt_id: string;
+  prompt: {
+    server_id: string;
+    host: string;
+    port: number;
+    key_type: string;
+    fingerprint: string;
+    previous_fingerprint?: string | null;
+  };
+};
+
 /**
  * The fleet inventory, read from the local SQLite store over Tauri IPC.
  *
@@ -19,6 +31,8 @@ export const ServerList: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [result, setResult] = useState<Loaded<ServerProfile[]> | null>(null);
   const [busy, setBusy] = useState(false);
+  const [connectionStates, setConnectionStates] = useState<Record<string, string>>({});
+  const [hostKeyPrompt, setHostKeyPrompt] = useState<HostKeyPromptPayload | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -29,6 +43,25 @@ export const ServerList: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!hasBackend()) return;
+    let disposed = false;
+    let dispose: (() => void) | undefined;
+    void import('@tauri-apps/api/event').then(({ listen }) => Promise.all([
+      listen<HostKeyPromptPayload>('kyvon-host-key-prompt', event => setHostKeyPrompt(event.payload)),
+      listen<{ event: string; server_id?: string; state?: string; message?: string }>('kyvon-event', event => {
+        if (event.payload.event === 'connection_state' && event.payload.server_id && event.payload.state) {
+          setConnectionStates(previous => ({ ...previous, [event.payload.server_id!]: event.payload.state! }));
+        }
+      }),
+    ])).then(unlisteners => {
+      const cleanup = () => unlisteners.forEach(unlisten => { void unlisten(); });
+      if (disposed) cleanup();
+      else dispose = cleanup;
+    });
+    return () => { disposed = true; dispose?.(); };
+  }, []);
 
   const handleAddServer = async (data: NewServerData) => {
     const created = await Backend.addServer({
@@ -48,6 +81,18 @@ export const ServerList: React.FC = () => {
   const handleDelete = async (id: string) => {
     const removed = await Backend.deleteServer(id);
     if (removed.state === 'ok') await load();
+  };
+
+  const handleConnect = async (id: string) => {
+    setConnectionStates(previous => ({ ...previous, [id]: 'connecting' }));
+    const result = await Backend.connect(id);
+    if (result.state === 'failed') setConnectionStates(previous => ({ ...previous, [id]: 'error' }));
+  };
+
+  const handleDisconnect = async (id: string) => {
+    setConnectionStates(previous => ({ ...previous, [id]: 'disconnecting' }));
+    const result = await Backend.disconnect(id);
+    if (result.state === 'failed') setConnectionStates(previous => ({ ...previous, [id]: 'error' }));
   };
 
   const servers = result?.state === 'ok' ? result.data : [];
@@ -149,10 +194,11 @@ export const ServerList: React.FC = () => {
             <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => void Backend.connect(server.id)}
+                  onClick={() => void (connectionStates[server.id] === 'connected' ? handleDisconnect(server.id) : handleConnect(server.id))}
                   className="px-3 py-1.5 rounded-lg border border-transparent bg-info hover:bg-info/90 text-white text-xs font-semibold flex items-center gap-1 transition-all"
+                  disabled={connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting'}
                 >
-                  <RefreshCw className="w-3 h-3" /> Connect
+                  <RefreshCw className={`w-3 h-3 ${connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting' ? 'animate-spin' : ''}`} /> {connectionStates[server.id] === 'connected' ? 'Disconnect' : connectionStates[server.id] === 'connecting' ? 'Connecting…' : connectionStates[server.id] === 'disconnecting' ? 'Disconnecting…' : 'Connect'}
                 </button>
 
                 <button
@@ -189,6 +235,7 @@ export const ServerList: React.FC = () => {
         onClose={() => setIsAddOpen(false)}
         onSave={handleAddServer}
       />
+      {hostKeyPrompt && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><div role="dialog" aria-modal="true" aria-labelledby="host-key-title" className="max-w-lg rounded-xl border border-amber-500/40 bg-surface p-6 shadow-2xl"><h2 id="host-key-title" className="text-lg font-semibold text-white">Verify SSH host key</h2><p className="mt-3 text-sm leading-6 text-secondary">{hostKeyPrompt.prompt.previous_fingerprint ? 'The host key changed. Verify it out of band before continuing.' : 'This host key has not been trusted on this workstation.'}</p><dl className="mt-4 space-y-2 rounded-lg bg-background p-4 text-xs"><div className="flex justify-between gap-4"><dt className="text-secondary">Target</dt><dd className="font-mono text-white">{hostKeyPrompt.prompt.host}:{hostKeyPrompt.prompt.port}</dd></div><div className="flex justify-between gap-4"><dt className="text-secondary">Algorithm</dt><dd className="font-mono text-white">{hostKeyPrompt.prompt.key_type}</dd></div><div className="flex justify-between gap-4"><dt className="text-secondary">Fingerprint</dt><dd className="break-all text-right font-mono text-amber-300">{hostKeyPrompt.prompt.fingerprint}</dd></div></dl><div className="mt-5 flex justify-end gap-3"><button type="button" className="rounded-lg border border-border px-4 py-3 text-sm" onClick={() => { void Backend.resolveHostKey(hostKeyPrompt.prompt_id, false); setHostKeyPrompt(null); }}>Reject</button><button type="button" className="rounded-lg bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950" onClick={() => { void Backend.resolveHostKey(hostKeyPrompt.prompt_id, true); setHostKeyPrompt(null); }}>Trust and connect</button></div></div></div>}
     </div>
   );
 };

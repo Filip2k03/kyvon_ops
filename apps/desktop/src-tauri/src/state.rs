@@ -11,6 +11,8 @@ use kyvon_ssh::SshSession;
 use kyvon_storage::Database;
 use tokio::sync::Mutex;
 
+use crate::hostkey::PendingPrompts;
+
 /// Live SSH sessions, keyed by server id.
 ///
 /// One session per server, not one per feature: telemetry, terminals, SFTP
@@ -57,4 +59,5 @@ impl SessionManager {
 pub struct AppState {
     pub db: Database,
     pub sessions: Arc<Mutex<SessionManager>>,
+    pub prompts: Arc<PendingPrompts>,
 }

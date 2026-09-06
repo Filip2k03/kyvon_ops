@@ -22,7 +22,7 @@ COMMANDS:
     rollback <target>           Rollback to previous verified deployment state
     incident list               List active and recent SRE incidents and MTTR
     diagnose <target>           Perform root-cause diagnostics (server or domain)
-    mcp install                 Generate configuration for Claude, Cursor, Codex, Gemini
+    mcp install                 Generate configuration for Codex Astra, Claude Opus, Agy Gemini 3.8
     mcp doctor                  Verify MCP tool catalog, policy gates, and redactor
     agent install <host>        Deploy lightweight static Musl probe to remote host
     agent status <host>         Check agent daemon health and memory RSS usage
@@ -274,7 +274,7 @@ async fn main() {
   }}
 }}"#
                     );
-                    println!("\nSupported Clients: Claude Code, Cursor CLI, OpenAI Codex Astra, Gemini CLI.");
+                    println!("\nSupported Clients: Codex Astra, Claude Opus, Agy Gemini 3.8.");
                 }
                 "doctor" => {
                     println!("=== KyvonOPS MCP Doctor & Health Check ===");

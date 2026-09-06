@@ -595,8 +595,8 @@ export const LandingPage: React.FC = () => {
 
             <p className="text-sm sm:text-base text-secondary leading-relaxed max-w-2xl">
               Turn any standard Linux VPS, cloud instance, or bare-metal host into an autonomously mapped 3D digital twin. Safely collaborate with{' '}
-              <strong className="text-white">Claude Code</strong>, <strong className="text-white">Codex Astra</strong>, and{' '}
-              <strong className="text-white">Cursor CLI</strong> through a policy-controlled MCP gateway — with{' '}
+              <strong className="text-white">Codex Astra</strong>, <strong className="text-white">Claude Opus</strong>, and{' '}
+              <strong className="text-white">Agy Gemini 3.8</strong> through a policy-controlled MCP gateway — with{' '}
               <span className="text-emerald-400 font-semibold">zero private key exposure</span> and human biometric approval.
             </p>
 
@@ -798,7 +798,7 @@ export const LandingPage: React.FC = () => {
             </div>
             <h3 className="text-base font-bold text-white">Zero-Secret Policy MCP Gateway</h3>
             <p className="text-xs text-secondary leading-relaxed">
-              Let Claude Code, Cursor, and Codex assist your SRE workflows. AI models receive typed diagnostics and can propose repairs, but NEVER receive raw SSH keys or unrestricted shell execution.
+              Let Codex Astra, Claude Opus, and Agy Gemini 3.8 assist your SRE workflows. AI models receive typed diagnostics and can propose repairs, but NEVER receive raw SSH keys or unrestricted shell execution.
             </p>
           </div>
 

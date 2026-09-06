@@ -2555,6 +2555,7 @@ dependencies = [
 name = "kyvon-ops"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "kyvon-core",
  "kyvon-security",
  "kyvon-ssh",

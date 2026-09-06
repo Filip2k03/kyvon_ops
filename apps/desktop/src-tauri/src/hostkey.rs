@@ -79,6 +79,17 @@ impl DesktopVerifier {
         }
     }
 
+    fn emit_state(&self, state: kyvon_core::ConnectionState, message: Option<String>) {
+        let _ = self.app.emit(
+            "kyvon-event",
+            KyvonEvent::ConnectionState {
+                server_id: self.server_id.clone(),
+                state,
+                message,
+            },
+        );
+    }
+
     /// Ask the operator about a key and wait for the answer.
     async fn ask(&self, prompt: HostKeyPrompt) -> Verdict {
         let prompt_id = format!("hk_{}", Uuid::new_v4().simple());
@@ -113,26 +124,33 @@ impl DesktopVerifier {
 #[async_trait::async_trait]
 impl HostKeyVerifier for DesktopVerifier {
     async fn verify(&self, host: &str, port: u16, key: &PresentedKey) -> Verdict {
+        // `ConnectionState` documents a state machine whose legal transitions
+        // are `Connecting -> VerifyingHost -> Authenticating -> Connected`, so
+        // that no event can report `Connected` without having authenticated.
+        // This callback is the only place that knows when host verification
+        // actually begins, so it is what keeps the emitted sequence legal —
+        // `connect` alone could only jump from Connecting to Connected.
+        self.emit_state(kyvon_core::ConnectionState::VerifyingHost, None);
+
         let repo = KnownHostRepo::new(self.db.clone());
 
         let status = match repo.status(host, port, &key.openssh).await {
             Ok(s) => s,
             // A store we cannot read is not evidence of trust.
             Err(e) => {
-                let _ = self.app.emit(
-                    "kyvon-event",
-                    KyvonEvent::ConnectionState {
-                        server_id: self.server_id.clone(),
-                        state: kyvon_core::ConnectionState::Error,
-                        message: Some(format!("could not read known hosts: {e}")),
-                    },
+                self.emit_state(
+                    kyvon_core::ConnectionState::Error,
+                    Some(format!("could not read known hosts: {e}")),
                 );
                 return Verdict::Reject;
             }
         };
 
         let previous_fingerprint = match status {
-            kyvon_storage::HostKeyStatus::Known => return Verdict::Trust,
+            kyvon_storage::HostKeyStatus::Known => {
+                self.emit_state(kyvon_core::ConnectionState::Authenticating, None);
+                return Verdict::Trust;
+            }
             kyvon_storage::HostKeyStatus::Unknown => None,
             kyvon_storage::HostKeyStatus::Changed {
                 previous_fingerprint,
@@ -164,17 +182,66 @@ impl HostKeyVerifier for DesktopVerifier {
             if let Err(e) = repo.trust(&record).await {
                 // The key is good for this session but was not remembered;
                 // say so rather than silently re-prompting next time.
-                let _ = self.app.emit(
-                    "kyvon-event",
-                    KyvonEvent::ConnectionState {
-                        server_id: self.server_id.clone(),
-                        state: kyvon_core::ConnectionState::Connecting,
-                        message: Some(format!("host key trusted but not saved: {e}")),
-                    },
+                self.emit_state(
+                    kyvon_core::ConnectionState::VerifyingHost,
+                    Some(format!("host key trusted but not saved: {e}")),
                 );
             }
+            self.emit_state(kyvon_core::ConnectionState::Authenticating, None);
         }
 
         verdict
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A prompt id is single-use. Answering it twice, or answering one that
+    /// was never issued, must not authorise anything — otherwise a replayed
+    /// "trust" could approve a *later* host key the operator never saw.
+    #[tokio::test]
+    async fn a_prompt_id_authorises_exactly_once() {
+        let prompts = PendingPrompts::default();
+        let rx = prompts.register("hk_known".into());
+
+        assert!(
+            prompts.resolve("hk_known", true),
+            "first answer is delivered"
+        );
+        assert!(rx.await.unwrap(), "the waiting verifier sees the decision");
+
+        assert!(
+            !prompts.resolve("hk_known", true),
+            "the same id cannot be answered twice"
+        );
+        assert!(
+            !prompts.resolve("hk_never_issued", true),
+            "an id that was never issued cannot be answered"
+        );
+    }
+
+    /// A timed-out prompt is forgotten, so a late answer arriving after the
+    /// connection was abandoned cannot resurrect it.
+    #[tokio::test]
+    async fn a_forgotten_prompt_cannot_be_answered_late() {
+        let prompts = PendingPrompts::default();
+        let _rx = prompts.register("hk_expired".into());
+
+        prompts.forget("hk_expired");
+
+        assert!(!prompts.resolve("hk_expired", true));
+    }
+
+    /// Declining is delivered as an explicit decline rather than merely
+    /// dropped. The verifier refuses on both, but this pins the explicit path.
+    #[tokio::test]
+    async fn declining_is_delivered_as_a_decline() {
+        let prompts = PendingPrompts::default();
+        let rx = prompts.register("hk_declined".into());
+
+        assert!(prompts.resolve("hk_declined", false));
+        assert!(!rx.await.unwrap());
     }
 }
