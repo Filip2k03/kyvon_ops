@@ -151,7 +151,11 @@ jobs:
   checksums:
     name: SHA-256 manifests
     needs: build-desktop-apps
-    if: needs.build-desktop-apps.result == 'success'
+    # The desktop matrix intentionally uses `always()` so an optional skipped
+    # agent job does not cascade into it. Mirror that semantics here; otherwise
+    # GitHub treats the skipped transitive agent job as an implicit failure and
+    # silently skips checksum publication even when every desktop build passed.
+    if: ${{ always() && needs.build-desktop-apps.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
