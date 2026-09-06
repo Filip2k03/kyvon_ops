@@ -1,19 +1,25 @@
 # Project-local agent profiles
 
-The intended Antigravity workspace is `.agents/agents/`. The current execution
-environment permits reading that directory but denies writes, so the profiles
-below are the source text to install there when the workspace permission allows
-it. Do not install them in the global Gemini configuration for this repository.
+Source of truth: `docs/agents/<id>/agent.md`.
 
-## Supported profiles
+Install into the Antigravity workspace with:
 
-- `agy-claude-codex-bridge`: coordinates the three supported clients, assigns
-  exclusive file ownership, and requires evidence-based handoffs.
-- `codex-astra`: implementation and release-readiness checks with focused tests.
-- `claude-opus`: security, architecture, MCP, SSH, and documentation review.
-- `agy-gemini-3-8`: QA, integration, deployment smoke tests, and failure review.
+```sh
+chmod +x scripts/kyvon-control.sh
+./scripts/kyvon-control.sh install-agents
+```
 
-All profiles must read `AGENTS.md`, `CLAUDE.md`, and `PROMPTS.md`; preserve
-unrelated worktree changes; use the MCP policy boundary; keep credentials out of
-agent context and logs; and report commands, evidence, and blockers. Cursor is
-not a supported client for this project.
+That copies profiles into `.agents/agents/` (override with `-t DIR`). The control
+script uses `cp`, not heredocs. Cursor is not a supported client.
+
+## Profiles
+
+| Id | Role |
+| --- | --- |
+| `agy-claude-codex-bridge` | Orchestrator: exclusive file ownership, evidence gates, no credential egress |
+| `codex-astra` | Rust / Tauri / React implementation; type parity; no fake metrics |
+| `claude-opus` | Security: keychain, typed MCP, approval, audit, redaction |
+| `agy-gemini-3-8` | QA: live SSH/PTY smoke, honest empty states, launch-gate evidence |
+
+All profiles read `AGENTS.md`, `CLAUDE.md`, and `PROMPTS.md`. Writes go through
+the same policy boundary as the UI. Models receive capabilities, never SSH keys.
