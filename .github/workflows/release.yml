@@ -100,12 +100,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # One universal macOS bundle rather than an Apple Silicon one. The
+          # aarch64-only build left every Intel Mac with nothing to download,
+          # and a second DMG would make the download page ask a visitor which
+          # processor they have — a question most people cannot answer.
           - platform: macos-latest
-            args: --target aarch64-apple-darwin
+            args: --target universal-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           - platform: ubuntu-22.04
             args: --target x86_64-unknown-linux-gnu
+            rust_targets: x86_64-unknown-linux-gnu
           - platform: windows-latest
             args: --target x86_64-pc-windows-msvc
+            rust_targets: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v5
@@ -114,7 +121,9 @@ jobs:
           bun-version: latest
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'windows-latest' && 'x86_64-pc-windows-msvc' || 'x86_64-unknown-linux-gnu' }}
+          # Declared per-entry above: a universal build needs both Apple
+          # targets, which a single ternary could not express.
+          targets: ${{ matrix.rust_targets }}
 
       - name: Install Linux Build Toolchain
         if: matrix.platform == 'ubuntu-22.04'

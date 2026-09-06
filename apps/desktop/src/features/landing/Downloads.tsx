@@ -266,6 +266,8 @@ bun run tauri build`}</code>
                   <VariantCard key={variant.asset.name} variant={variant} />
                 ))}
               </ul>
+
+              {active && <FirstRunNotice platform={active} />}
             </>
           )}
 
@@ -280,6 +282,59 @@ bun run tauri build`}</code>
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * What to do when the operating system refuses to open the download.
+ *
+ * Written conditionally rather than asserting the build is unsigned: a future
+ * signed and notarised release must not turn this copy into a false statement.
+ * But a visitor who hits Gatekeeper with no explanation concludes the download
+ * is broken or malicious, and that is a worse first contact than a paragraph
+ * of instructions — so the instructions are here before they need them.
+ */
+function FirstRunNotice({ platform }: { platform: Platform }) {
+  const guidance: Partial<Record<Platform, { title: string; body: string; steps: string[] }>> = {
+    macOS: {
+      title: 'If macOS says the app cannot be opened',
+      body: 'macOS blocks applications that are not signed with an Apple Developer ID and notarised. That check is about the certificate, not about whether this particular file is safe — verify the SHA-256 above and decide for yourself.',
+      steps: [
+        'Move KyvonOPS to your Applications folder.',
+        'Right-click (or Control-click) the app and choose Open.',
+        'Choose Open again in the dialog. macOS remembers the decision.',
+      ],
+    },
+    Windows: {
+      title: 'If Windows shows a SmartScreen warning',
+      body: 'SmartScreen warns about installers it has not seen signed by a known publisher. Verify the SHA-256 above before continuing.',
+      steps: ['Choose “More info”.', 'Choose “Run anyway”.'],
+    },
+    Linux: {
+      title: 'Running the AppImage',
+      body: 'An AppImage needs the executable bit before it will run. The .deb package installs normally with apt or dpkg and needs no extra step.',
+      steps: ['chmod +x KyvonOPS_*.AppImage', './KyvonOPS_*.AppImage'],
+    },
+  };
+
+  const notice = guidance[platform];
+  if (!notice) return null;
+
+  return (
+    <aside className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/40 p-5">
+      <h4 className="text-sm font-semibold text-slate-200">{notice.title}</h4>
+      <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-400">{notice.body}</p>
+      <ol className="mt-3 space-y-1.5">
+        {notice.steps.map((step, index) => (
+          <li key={step} className="flex gap-3 text-xs leading-6 text-slate-300">
+            <span aria-hidden="true" className="font-mono text-slate-500">
+              {index + 1}
+            </span>
+            <span className={platform === 'Linux' ? 'font-mono' : undefined}>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </aside>
   );
 }
 
