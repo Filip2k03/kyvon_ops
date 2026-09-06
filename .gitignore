@@ -2,6 +2,16 @@ node_modules/
 dist/
 target/
 .DS_Store
+*.md.tmp
+*.md.bak
+AGENTS.local.md
+CLAUDE.local.md
+PROMPTS.local.md
+docs/.drafts/
+docs/_generated/
+agents/.scratch/
+.agents-local/
+*.session.json
 *.log
 *.tsbuildinfo
 apps/desktop/src-tauri/gen/

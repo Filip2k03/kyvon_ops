@@ -1,0 +1,19 @@
+name: Documentation
+description: Report unclear, missing, or inaccurate documentation.
+title: "docs: "
+labels: ["type:docs"]
+body:
+  - type: textarea
+    id: gap
+    attributes:
+      label: Documentation gap
+      description: What is unclear or inaccurate?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link the file, route, command, or release that should be documented.
+    validations:
+      required: true

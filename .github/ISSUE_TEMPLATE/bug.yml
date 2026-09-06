@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible KyvonOPS defect.
+title: "bug: "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Give the smallest safe reproduction. Never include credentials or private host data.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs and expected behavior
+    validations:
+      required: true

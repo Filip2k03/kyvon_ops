@@ -1,0 +1,17 @@
+name: Feature request
+description: Propose a scoped, evidence-backed improvement.
+title: "feat: "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and safety impact
+    validations:
+      required: true

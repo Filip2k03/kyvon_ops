@@ -1,100 +1,185 @@
-# KyvonOPS V4.1
+# KyvonOPS
 
-A local-first infrastructure operations project for developers, independent operators, and teams. The target architecture combines a Tauri desktop application, Rust domain libraries, local SQLite storage, direct SSH, and a policy-controlled MCP gateway.
+Local-first DevOps control plane for SSH, AI agents, and infrastructure operations.
 
-**Status: development preview.** A successful frontend build is not proof that native installation, SSH operations, mobile pairing, or deployment are production-ready. Check release notes and verified artifacts before installing on a production workstation.
+[Demo / website](https://kyvonops.sys.thuyakyaw.com/) · [Releases](https://github.com/Filip2k03/kyvon_ops/releases) · [Documentation](docs/) · [Report an issue](https://github.com/Filip2k03/kyvon_ops/issues/new/choose)
 
-The current `v4.1.0-rc.7` GitHub prerelease contains CI-built Windows, universal
-macOS, and Linux installers plus `SHA256SUMS.txt`. It is a draft, unsigned
-validation release; it is not the stable download channel.
+> **V4.1 status: development preview.** RC7 has CI-built Windows, universal macOS, and Linux installers with a verified SHA256 manifest, but it is an unsigned draft prerelease. A stable download is not advertised until clean installation, signing, packaged SSH, and rollback evidence are complete.
 
-## Website and application
+## What is KyvonOPS?
 
-The public website provides product information, getting-started guidance, and links to [GitHub releases](https://github.com/Filip2k03/kyvon_ops/releases). It does not expose the infrastructure workspace or ask for SSH/cloud credentials. Browser requests for app-only routes redirect to the public home page.
+KyvonOPS is a Rust and Tauri desktop workspace for developers, SREs, and
+infrastructure operators who manage VPS and remote Linux systems through SSH.
+The workspace keeps server configuration and operational state local, uses the
+operating system credential store for secrets, and shows measured host data only
+after an SSH connection is established.
 
-The installed Tauri application loads the operational workspace separately. Each user should connect their own servers from their own machine. No maintainer account, shared server inventory, or mandatory hosted KyvonOPS control plane belongs in that flow. See [the website/application boundary](docs/PUBLIC_WEBSITE.md).
+The control plane connects infrastructure telemetry, diagnostics, logs, and
+typed operations in one place. AI clients use MCP capabilities and policy gates;
+they do not receive raw SSH credentials or unrestricted shell access.
 
-After the local deployment passes, follow the [Cloudflare Tunnel setup](docs/CLOUDFLARE_TUNNEL_SETUP.md) to expose only the public static site.
+## Why KyvonOPS?
 
-For the controlled VPN-based remote deployment and installation verification sequence, use the [deployment test plan](docs/DEPLOYMENT_TEST_PLAN.md). It keeps operator VPN and SSH credentials outside this repository.
+Traditional workflow:
 
-The V4.1 evidence matrix and release gate are maintained in [production readiness](docs/V4.1_PRODUCTION_READINESS.md) and [release gate](docs/V4.1_RELEASE_GATE.md). They record verified checks and explicit blockers; they do not substitute for deployment evidence.
-
-The public website is `https://kyvonops.sys.thuyakyaw.com/`. It serves the static product site over HTTPS. It is not a hosted SSH control plane.
-
-See [V4.1 security](docs/V4.1_SECURITY.md) for the implemented boundary (keychain, host keys, MCP capabilities, redaction). Pairing, hosted MFA, and a public API are not part of this build.
-
-Monetization is isolated to optional public/download sponsor placements; the operational control plane remains ad-free. See the [V4.1 monetization boundary](docs/MONETIZATION.md).
-
-For the final evidence-based review, see the [launch checklist](docs/V4.1_FINAL_LAUNCH_CHECKLIST.md) and [release report](docs/V4.1_FINAL_RELEASE_REPORT.md).
-
-The system boundaries and shared control-gate model are described in the [V4.1 architecture](docs/V4.1_ARCHITECTURE.md).
-
-Platform-specific desktop setup is documented in [V4.1 desktop installation](docs/V4.1_DESKTOP_INSTALLATION.md).
-
-## Installation and availability
-
-Use only artifacts actually published in a release. Review its operating-system requirements, checksums, signing information, and known limitations. The website does not fabricate installer URLs or imply that a package exists for every platform.
-
-V4.1 targets macOS, Windows, and Linux desktop users. Android and iOS companion functionality is under development; packaging scripts alone do not establish a working mobile product. Native builds, clean installation, credential custody, updates, and end-to-end operations must be verified before a stable release.
-
-## Development
-
-Prerequisites: Rust matching `Cargo.toml`, Bun, and the native toolchain required by Tauri for your operating system.
-
-Check the local toolchain without changing the machine, or install the locked
-frontend dependencies with the repository helper:
-
-```sh
-./scripts/install.sh --check
-./scripts/install.sh --frontend
+```text
+terminal → SSH → commands → scripts → logs → another terminal
 ```
+
+KyvonOPS workflow:
+
+```text
+desktop workspace → SSH identity check → measured telemetry
+                 → MCP capability → policy/approval → operation → audit
+```
+
+The desktop remains useful as a local control point when hosted services are
+unavailable. The public website never asks for SSH credentials and is not a
+hosted control plane.
+
+## Features
+
+- SSH server management with host-key verification.
+- Local SQLite workspace and OS credential/keychain custody.
+- Measured CPU, memory, disk, process, service, network, and port telemetry.
+- Diagnostics and topology boundaries that show unavailable data honestly.
+- MCP tools with typed capabilities, target scoping, policy checks, approval, and audit.
+- Rust domain crates, Tauri 2 desktop shell, and a Rust CLI.
+- macOS, Windows, and Linux release targets through GitHub Actions.
+
+## 60-second demo
+
+A verified demo should show launch → connect an owned VPS → host identity
+confirmation → measured health → a proposed operation → approval gate → audit.
+No production credentials or fake metrics belong in a demo. The capture plan is
+in [`docs/SCREENSHOT_CAPTURE_PLAN.md`](docs/SCREENSHOT_CAPTURE_PLAN.md).
+
+## Architecture
+
+```mermaid
+flowchart TD
+  UI[Tauri React desktop] --> CORE[Rust domain and policy core]
+  CORE --> DB[(Local SQLite)]
+  CORE --> SSH[SSH and telemetry]
+  CORE --> MCP[MCP capability gateway]
+  MCP --> POLICY[Policy and approval gate]
+  POLICY --> AUDIT[Audit ledger]
+  SSH --> VPS[User-owned VPS]
+```
+
+See [`docs/V4.1_ARCHITECTURE.md`](docs/V4.1_ARCHITECTURE.md) for verified
+boundaries and limitations.
+
+## Security model
+
+```text
+credentials → OS credential store
+AI          → typed capability
+operation   → target and policy check
+write       → explicit approval
+result      → verification and audit
+```
+
+Passwords, private keys, tokens, and passphrases are never rendered or sent to
+an AI model. Changed SSH host keys stop the connection and require explicit
+review. Read [`docs/V4.1_SECURITY.md`](docs/V4.1_SECURITY.md) before operating
+on a real host.
+
+## Install
+
+Only install artifacts from a published release after checking its platform,
+architecture, signing status, release notes, and SHA256 manifest. RC7 is a
+draft validation release, not the stable channel.
+
+### Linux source helper
 
 ```sh
 git clone https://github.com/Filip2k03/kyvon_ops.git
 cd kyvon_ops
+./scripts/install.sh --check
+./scripts/install.sh --frontend
+./scripts/build-desktop.sh
+```
+
+The Linux `--desktop` helper downloads only a published AppImage whose checksum
+is present in `SHA256SUMS`; it fails closed otherwise. See
+[`docs/V4.1_DESKTOP_INSTALLATION.md`](docs/V4.1_DESKTOP_INSTALLATION.md) for
+Windows and macOS guidance.
+
+## Quick start
+
+1. Launch the desktop app and open **Servers**.
+2. Add a VPS you own: host, port, username, and a supported SSH identity.
+3. Review the presented host fingerprint and trust it only after verification.
+4. Connect and wait for discovery and telemetry to produce measured values.
+5. Use diagnostics and read-only tools before requesting a controlled action.
+
+## CLI
+
+The CLI is in `apps/cli`. Build and inspect its actual commands before use:
+
+```sh
+cargo build -p kyvon-cli
+cargo run -p kyvon-cli -- --help
+```
+
+## MCP and AI agents
+
+KyvonOPS is designed for Codex Astra, Claude Opus, and Agy Gemini 3.8 through
+the same capability boundary. An agent may request a typed operation, but the
+policy engine decides whether it is allowed and whether human approval is
+required. The MCP server is in `apps/mcp`; see [`docs/AGENT_PROFILES.md`](docs/AGENT_PROFILES.md).
+
+## Development
+
+```sh
+./scripts/install.sh --check
+./scripts/install.sh --frontend
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 cargo build -p kyvon-mcp
-```
-
-Build and test the public frontend:
-
-```sh
 cd apps/desktop
-bun test tests/public-website.test.tsx
 bun run build
+bun test tests/
 ```
 
-The build emits static files into `apps/desktop/dist`. `bun run dev` starts an optional local frontend development server; stop it when finished. A public deployment should serve the built static files, not a workstation development process.
+`bun run lint` remains a separate repository task while its ESLint dependency and
+configuration are completed. Native installer claims require the release gate;
+frontend and Rust checks alone are not native install proof.
 
-`bun run lint` is declared but requires the repository's ESLint dependency/configuration to be completed. Native desktop builds require separate validation; the Rust workspace checks do not by themselves establish that the Tauri shell builds or runs.
+## Roadmap and release truth
 
-## Repository map
+The current V4.1 gate is maintained in
+[`docs/V4.1_RELEASE_GATE.md`](docs/V4.1_RELEASE_GATE.md) and
+[`docs/V4.1_DESKTOP_RELEASE_GATE.md`](docs/V4.1_DESKTOP_RELEASE_GATE.md).
+Unsigned RC artifacts, hosted authentication, mobile, voice/video, signed
+updates, and rollback evidence remain explicitly classified rather than implied.
 
-| Path | Responsibility |
-| --- | --- |
-| `apps/desktop/src/features/landing/PublicWebsite.tsx` | Public product, release, and setup pages |
-| `apps/desktop/src/DesktopApp.tsx` | Installed application routes |
-| `apps/desktop/src-tauri/` | Native desktop commands and state |
-| `apps/mcp/` | MCP stdio executable |
-| `apps/cli/` | Rust CLI |
-| `crates/` | Models, storage, SSH, telemetry, diagnostics, topology, security, policy |
-| `database/migrations/` | SQLite migrations |
-| `agent/` | Remote probe work; inspect implementation before assuming a static binary exists |
-| `scripts/` | Packaging helpers |
+## Contributing
 
-## Security contract
+Read [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md), and [`PROMPTS.md`](PROMPTS.md)
+before editing. Use Conventional Commits, preserve unrelated worktree changes,
+keep credentials out of issues and pull requests, and include exact validation
+commands. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and the prepared
+[`docs/ISSUE_BACKLOG.md`](docs/ISSUE_BACKLOG.md).
 
-- Infrastructure credentials belong in the current user's OS credential store; the public website receives none.
-- MCP tools must be typed, target-scoped, policy-checked, and audited. Missing backends must return unavailable states, never fabricated success.
-- Writes require the appropriate approval and verification. AI clients receive capabilities, not raw credentials.
-- Supported AI clients are Codex Astra, Claude Opus, and Agy Gemini 3.8.
-- Do not ship personal database files, credentials, server profiles, or private keys. Each installed user starts with a separate local workspace.
+## Community
 
-## Contributing and release work
+The repository currently has no automated Discussions or social publishing.
+The evidence-first plan is in [`docs/DISCUSSION_PLAN.md`](docs/DISCUSSION_PLAN.md)
+and [`docs/MARKETING_PLAYBOOK.md`](docs/MARKETING_PLAYBOOK.md). Ask for
+technical critique and report reproducible issues; do not share secrets or
+private infrastructure details.
 
-Read [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), and the [product specification](PROMPTS.md) before changing behavior. Use Conventional Commits, preserve unrelated edits, and include tests for new operational boundaries. Document unavailable functionality and exact validation results.
+## Support the project
 
-Release publication requires verified native artifacts, signing and update checks, real backend behavior, and a tested hosting destination. Source changes and frontend tests do not establish those gates. Donations and promotional material must use verified destinations and truthful feature claims; no test checkout should be presented as a real payment flow.
+If KyvonOPS is useful, a GitHub star helps other infrastructure developers find
+the project. More valuable still: try the documented path, report a reproducible
+problem, improve documentation, or contribute a focused pull request.
+
+## License
+
+No `LICENSE` file is currently published in this repository. Confirm the
+maintainer's licensing decision before redistributing KyvonOPS or presenting it
+as an open-source dependency.

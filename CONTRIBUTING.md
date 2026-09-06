@@ -1,6 +1,6 @@
-# Contributing to KyvonOPS V3.0
+# Contributing to KyvonOPS V4.1
 
-Thank you for your interest in contributing to **KyvonOPS**! KyvonOPS is an open-source, sovereign, local-first infrastructure control plane built for DevOps engineers, sysadmins, and autonomous AI collaboration.
+Thank you for your interest in contributing to **KyvonOPS**. KyvonOPS is a local-first infrastructure control plane for DevOps engineers, sysadmins, and AI-assisted operations. Read `AGENTS.md`, `CLAUDE.md`, and `PROMPTS.md` before changing behavior.
 
 ---
 
