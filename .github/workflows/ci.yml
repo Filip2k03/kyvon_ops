@@ -64,3 +64,11 @@ jobs:
         run: cd apps/desktop && bun run build
       - name: Public Website Boundary Tests
         run: cd apps/desktop && bun test tests/public-website.test.tsx
+
+      # End-to-end over the built bundle, not the live site: a test that
+      # depends on production fails when Cloudflare is slow and passes when a
+      # regression is merely not deployed yet, which measures the wrong thing.
+      - name: Install Playwright browser
+        run: cd apps/desktop && bunx playwright install --with-deps chromium
+      - name: Public Flow End-to-End Tests
+        run: cd apps/desktop && bunx playwright test
