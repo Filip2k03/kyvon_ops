@@ -78,9 +78,10 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
  */
 export const Backend = {
   listServers: () => call<ServerProfile[]>('list_servers'),
-  addServer: (server: Partial<ServerProfile>) => call<string>('add_server', { server }),
+  addServer: (server: Partial<ServerProfile>, secret?: string) =>
+    call<string>('add_server', { server, secret: secret ?? null }),
   deleteServer: (id: string) => call<void>('delete_server', { id }),
-  connect: (id: string) => call<void>('connect', { id }),
+  connect: (id: string, secret?: string) => call<void>('connect', { id, secret: secret ?? null }),
   disconnect: (id: string) => call<void>('disconnect', { id }),
   resolveHostKey: (promptId: string, trust: boolean) => call<void>('resolve_host_key', { promptId, trust }),
   openTerminal: (id: string, cols: number, rows: number) =>

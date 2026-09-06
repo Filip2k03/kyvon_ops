@@ -1,9 +1,8 @@
 //! Inventory commands, backed by the real `ServerRepo`.
 //!
 //! These persist connection *shape* only. A password or key passphrase never
-//! reaches this module — it goes to the OS keychain through `kyvon_ssh::Vault`
-//! at connect time, so the SQLite file stays an inventory rather than a set of
-//! credentials (specification §90, and the header of `0001_initial.sql`).
+//! reaches SQLite — it goes to the OS keychain through `kyvon_ssh::Vault`
+//! (specification §90, and the header of `0001_initial.sql`).
 
 use kyvon_core::inventory::{AuthMethod, ServerProfile};
 use kyvon_storage::ServerRepo;
@@ -17,7 +16,9 @@ use crate::state::AppState;
 /// Deliberately not `ServerProfile`: the frontend does not get to choose an
 /// id, a creation timestamp, or the probed facts. Those are assigned here so
 /// a malformed or hostile payload cannot overwrite an existing row by id.
-#[derive(Debug, serde::Deserialize)]
+/// Secrets are a separate command argument so they cannot be serialised into
+/// the inventory row even by mistake.
+#[derive(serde::Deserialize)]
 pub struct NewServer {
     pub alias: String,
     pub hostname: String,
@@ -34,18 +35,20 @@ fn default_port() -> u16 {
     22
 }
 
-/// Map a domain error to a message the UI can act on (§118).
 fn as_message(err: kyvon_core::KyvonError) -> String {
     err.to_string()
 }
 
+/// Persist a connection profile. `secret` is written to the OS keychain and
+/// is never stored in SQLite. The command never returns it.
 #[tauri::command]
-pub async fn add_server(state: State<'_, AppState>, server: NewServer) -> Result<String, String> {
-    if server.alias.trim().is_empty() {
-        return Err("A server needs an alias to identify it in the inventory.".into());
-    }
-    if server.hostname.trim().is_empty() {
-        return Err("A server needs a hostname or IP address to connect to.".into());
+pub async fn add_server(
+    state: State<'_, AppState>,
+    server: NewServer,
+    secret: Option<String>,
+) -> Result<String, String> {
+    if server.port == 0 {
+        return Err("SSH port must be between 1 and 65535.".into());
     }
 
     let now = kyvon_core::now_ms();
@@ -55,14 +58,48 @@ pub async fn add_server(state: State<'_, AppState>, server: NewServer) -> Result
         hostname: server.hostname.trim().to_string(),
         port: server.port,
         username: server.username.trim().to_string(),
-        // Default to the agent: it is the only method that needs no secret
-        // stored anywhere, so it is the safe thing to assume.
         auth: server.auth.unwrap_or(AuthMethod::Agent),
         tags: server.tags,
         facts: None,
         created_at: now,
         updated_at: now,
     };
+    profile.validate().map_err(as_message)?;
+
+    match &profile.auth {
+        AuthMethod::Password => {
+            let Some(value) = secret.as_deref().map(str::trim).filter(|s| !s.is_empty()) else {
+                return Err(
+                    "Password authentication needs the password once so it can be stored in the OS keychain. KyvonOPS never writes it to the inventory database."
+                        .into(),
+                );
+            };
+            kyvon_ssh::Vault::new()
+                .store(&profile.id, kyvon_ssh::vault::SecretKind::Password, value)
+                .map_err(as_message)?;
+        }
+        AuthMethod::PrivateKey {
+            encrypted: true, ..
+        } => {
+            if let Some(value) = secret.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+                kyvon_ssh::Vault::new()
+                    .store(
+                        &profile.id,
+                        kyvon_ssh::vault::SecretKind::KeyPassphrase,
+                        value,
+                    )
+                    .map_err(as_message)?;
+            }
+        }
+        _ => {
+            if secret.as_deref().is_some_and(|s| !s.is_empty()) {
+                return Err(
+                    "This authentication method does not accept a password. Use the SSH agent or a key file."
+                        .into(),
+                );
+            }
+        }
+    }
 
     let id = profile.id.clone();
     ServerRepo::new(state.db.clone())
@@ -82,11 +119,11 @@ pub async fn list_servers(state: State<'_, AppState>) -> Result<Vec<ServerProfil
 
 #[tauri::command]
 pub async fn delete_server(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    // Drop any live session first: leaving a connection open to a host that
-    // is no longer in the inventory would leave it unreachable from the UI
-    // but still holding a socket.
     if let Some(session) = state.sessions.lock().await.remove(&id) {
         drop(session);
+    }
+    if let Err(e) = kyvon_ssh::Vault::new().delete_all(&id) {
+        tracing::error!("could not remove keychain secrets for `{id}`: {e}");
     }
     ServerRepo::new(state.db.clone())
         .delete(&id)

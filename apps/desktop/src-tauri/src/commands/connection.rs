@@ -9,11 +9,16 @@ use crate::hostkey::DesktopVerifier;
 use crate::state::AppState;
 
 #[tauri::command]
-pub async fn connect(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<(), String> {
+pub async fn connect(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    secret: Option<String>,
+) -> Result<(), String> {
     let profile = ServerRepo::new(state.db.clone())
         .require(&id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| explain_connect(&e.to_string()))?;
     {
         let sessions = state.sessions.lock().await;
         if let Some(existing) = sessions.get(&id) {
@@ -23,15 +28,32 @@ pub async fn connect(app: AppHandle, state: State<'_, AppState>, id: String) -> 
         }
     }
     emit_state(&app, &id, ConnectionState::Connecting, None);
+    let one_shot = secret
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
     let secret = match profile.auth {
-        AuthMethod::Password => Vault::new()
-            .get(&id, kyvon_ssh::vault::SecretKind::Password)
-            .map_err(|e| e.to_string())?,
+        AuthMethod::Password => {
+            if one_shot.is_some() {
+                one_shot
+            } else {
+                Vault::new()
+                    .get(&id, kyvon_ssh::vault::SecretKind::Password)
+                    .map_err(|e| explain_connect(&e.to_string()))?
+            }
+        }
         AuthMethod::PrivateKey {
             encrypted: true, ..
-        } => Vault::new()
-            .get(&id, kyvon_ssh::vault::SecretKind::KeyPassphrase)
-            .map_err(|e| e.to_string())?,
+        } => {
+            if one_shot.is_some() {
+                one_shot
+            } else {
+                Vault::new()
+                    .get(&id, kyvon_ssh::vault::SecretKind::KeyPassphrase)
+                    .map_err(|e| explain_connect(&e.to_string()))?
+            }
+        }
         _ => None,
     };
     let verifier = Arc::new(DesktopVerifier::new(
@@ -60,7 +82,7 @@ pub async fn connect(app: AppHandle, state: State<'_, AppState>, id: String) -> 
             Ok(())
         }
         Err(error) => {
-            let message = error.to_string();
+            let message = explain_connect(&error.to_string());
             emit_state(&app, &id, ConnectionState::Error, Some(message.clone()));
             Err(message)
         }
@@ -91,6 +113,47 @@ pub async fn resolve_host_key(
     } else {
         Err("Host-key prompt is expired or already answered.".into())
     }
+}
+
+/// Operator-facing SSH failures. Never includes secrets; names the next step.
+fn explain_connect(raw: &str) -> String {
+    let lower = raw.to_ascii_lowercase();
+    if lower.contains("host key") && (lower.contains("changed") || lower.contains("mismatch")) {
+        return format!(
+            "Server identity changed. KyvonOPS stopped the connection to protect you. {raw} Confirm the new fingerprint out of band before trusting it."
+        );
+    }
+    if lower.contains("not trusted") || lower.contains("host key") {
+        return format!(
+            "This host key has not been trusted on this workstation. Verify the fingerprint, then choose Trust and continue. {raw}"
+        );
+    }
+    if lower.contains("authentication failed") || lower.contains("auth failed") {
+        return format!(
+            "Authentication failed. The server rejected the supplied SSH credentials. Check the username, password or private key, and the server's authentication policy. {raw}"
+        );
+    }
+    if lower.contains("timed out") || lower.contains("timeout") {
+        return format!(
+            "Connection timed out. Check that the host is up, the SSH port is reachable, and no firewall is dropping the packet. {raw}"
+        );
+    }
+    if lower.contains("connection refused") || lower.contains("refused") {
+        return format!(
+            "SSH connection refused. The host may be reachable, but nothing is accepting connections on this port. {raw}"
+        );
+    }
+    if lower.contains("network is unreachable") || lower.contains("offline") {
+        return format!(
+            "Your device appears to be offline, or the route to the host is missing. {raw}"
+        );
+    }
+    if lower.contains("vault") || lower.contains("no entry") || lower.contains("keychain") {
+        return format!(
+            "No password is stored in the OS keychain for this host. Re-enter it with Remember securely, or use an SSH agent / key file. {raw}"
+        );
+    }
+    raw.to_string()
 }
 
 fn emit_state(app: &AppHandle, server_id: &str, state: ConnectionState, message: Option<String>) {

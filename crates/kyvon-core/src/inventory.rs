@@ -104,6 +104,11 @@ impl ServerProfile {
             if path.trim().is_empty() {
                 return Err(Invalid("private key path must not be empty".into()));
             }
+            if !std::path::Path::new(path).is_absolute() {
+                return Err(Invalid(
+                    "private key path must be absolute on this workstation".into(),
+                ));
+            }
         }
         Ok(())
     }

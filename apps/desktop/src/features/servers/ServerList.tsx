@@ -65,14 +65,17 @@ export const ServerList: React.FC = () => {
   }, []);
 
   const handleAddServer = async (data: NewServerData) => {
-    const created = await Backend.addServer({
-      alias: data.alias,
-      hostname: data.hostname,
-      port: data.port,
-      username: data.username,
-      auth: data.auth,
-      tags: [data.tag],
-    });
+    const created = await Backend.addServer(
+      {
+        alias: data.alias,
+        hostname: data.hostname,
+        port: data.port,
+        username: data.username,
+        auth: data.auth,
+        tags: [data.tag],
+      },
+      data.secret,
+    );
     // Re-read rather than optimistically inserting: the store assigns the id
     // and is the only authority on what is actually persisted.
     if (created.state === 'ok') await load();

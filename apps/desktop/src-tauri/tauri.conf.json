@@ -36,6 +36,11 @@
       "dmg"
     ],
     "createUpdaterArtifacts": false,
+    "category": "DeveloperTool",
+    "shortDescription": "Sovereign local-first DevOps control plane",
+    "longDescription": "KyvonOPS drives SSH from the operator workstation. Passwords and key passphrases stay in the OS keychain. The public website does not open SSH.",
+    "publisher": "KyvonOPS",
+    "homepage": "https://kyvonops.sys.thuyakyaw.com/",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
