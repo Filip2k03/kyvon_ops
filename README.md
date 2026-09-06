@@ -4,6 +4,10 @@ A local-first infrastructure operations project for developers, independent oper
 
 **Status: development preview.** A successful frontend build is not proof that native installation, SSH operations, mobile pairing, or deployment are production-ready. Check release notes and verified artifacts before installing on a production workstation.
 
+The current `v4.1.0-rc.7` GitHub prerelease contains CI-built Windows, universal
+macOS, and Linux installers plus `SHA256SUMS.txt`. It is a draft, unsigned
+validation release; it is not the stable download channel.
+
 ## Website and application
 
 The public website provides product information, getting-started guidance, and links to [GitHub releases](https://github.com/Filip2k03/kyvon_ops/releases). It does not expose the infrastructure workspace or ask for SSH/cloud credentials. Browser requests for app-only routes redirect to the public home page.
