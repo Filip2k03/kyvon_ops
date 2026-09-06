@@ -5,11 +5,65 @@
 @layer base {
   :root {
     color-scheme: dark;
+
+    /*
+      Reader-controlled tokens. These carry the design defaults so the app is
+      correct before any JavaScript runs; `applyAppearance` overwrites them
+      from stored settings on mount. Anything painting a surface should read
+      the variable rather than the Tailwind literal, so a preference change
+      reaches it without a rebuild.
+    */
+    --kyvon-text-scale: 1;
+    --kyvon-bg: #08090b;
+    --kyvon-surface: #0e1014;
+    --kyvon-elevated: #14171c;
+    --kyvon-border: #252a32;
+    --kyvon-fg: #f1f3f5;
+    --kyvon-fg-secondary: #8b929d;
+    --kyvon-motion: 150ms;
+  }
+
+  /*
+    Honour the system before the panel has ever been opened. The stored
+    settings win once they exist, because they are a deliberate choice; until
+    then the OS is the better guess than our default.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --kyvon-motion: 0ms;
+    }
+  }
+
+  html {
+    /* Scales rem-based type without fighting the browser's own zoom. */
+    font-size: calc(16px * var(--kyvon-text-scale));
   }
 
   body {
-    @apply bg-background text-primary antialiased select-none;
+    @apply antialiased select-none;
+    background-color: var(--kyvon-bg);
+    color: var(--kyvon-fg);
     overflow-x: hidden;
+  }
+
+  /*
+    Reduced motion is enforced here rather than trusted to each component: a
+    single missed transition is exactly the kind of thing that makes someone
+    who needs this setting stop trusting it.
+  */
+  :root[data-motion='reduced'] *,
+  :root[data-motion='reduced'] *::before,
+  :root[data-motion='reduced'] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A visible focus ring everywhere, since keyboard users navigate by it. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid theme('colors.info');
+    outline-offset: 2px;
   }
 
   /* Cross-Platform Custom Thin Scrollbars (Windows & Linux) */

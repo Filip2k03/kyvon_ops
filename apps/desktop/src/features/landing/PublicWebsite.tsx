@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowRight, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
 import { Downloads } from './Downloads';
+import { AppearancePanel } from '../settings/AppearancePanel';
 import { KyvonLanding, KyvonPets, KyvonSecurity } from '../kyvon/KyvonPages';
 
 const repository = 'https://github.com/Filip2k03/kyvon_ops';
@@ -104,6 +105,7 @@ function Overview() {
 
 export function PublicWebsite() {
   return (
+    <>
     <div className="min-h-screen bg-[#090e17] text-slate-100 selection:bg-sky-800 select-text">
       <a href="#public-content" className="sr-only focus:not-sr-only focus:block focus:p-4">Skip to content</a>
       <header className="border-b border-slate-800">
@@ -128,5 +130,7 @@ export function PublicWebsite() {
       </main>
       <footer className="border-t border-slate-800"><div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-4 px-6 py-8 text-xs leading-6 text-slate-400"><p>KyvonOPS · Local-first infrastructure operations</p><p>Public website · Server administration belongs in the desktop app.</p></div></footer>
     </div>
+      <AppearancePanel />
+    </>
   );
 }
