@@ -263,9 +263,11 @@ export const ServerList: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => navigate('/terminal')}
-                  className="p-1.5 rounded-lg bg-elevated hover:bg-elevated/80 text-secondary hover:text-white border border-border"
-                  title="Open Shell Terminal"
+                  onClick={() => navigate(`/terminal?server=${encodeURIComponent(server.id)}`)}
+                  disabled={connectionStates[server.id] !== 'connected'}
+                  className="p-1.5 rounded-lg bg-elevated hover:bg-elevated/80 text-secondary hover:text-white border border-border disabled:cursor-not-allowed disabled:opacity-40"
+                  title={connectionStates[server.id] === 'connected' ? 'Open shell terminal' : 'Connect this server before opening a terminal'}
+                  aria-label={`Open terminal for ${server.alias}`}
                 >
                   <Terminal className="w-4 h-4" />
                 </button>

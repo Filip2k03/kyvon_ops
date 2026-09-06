@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { onCollectorStopped, onTelemetry } from './events';
-import type { CpuSample, MemorySample, NetworkSample } from '../types/telemetry';
+import type {
+  CpuSample,
+  DiskSample,
+  MemorySample,
+  NetworkSample,
+  PortSample,
+  ProcessSample,
+  ServiceSample,
+} from '../types/telemetry';
 
 /**
  * The latest measured sample per signal, for one server.
@@ -17,6 +25,17 @@ export interface LiveTelemetry {
   cpu: CpuSample | null;
   memory: MemorySample | null;
   network: NetworkSample | null;
+  /** Slow-cadence signals: processes every 3 ticks, services every 15, disk and ports every 30. */
+  processes: ProcessSample | null;
+  services: ServiceSample | null;
+  disk: DiskSample | null;
+  ports: PortSample | null;
+  /**
+   * The most recent parse failure per collector (`"disk"`, `"processes"`, …).
+   * A screen for that signal shows the message instead of an empty table, so a
+   * host whose `df` output the parser cannot read is reported as such.
+   */
+  errors: Record<string, string>;
   /** Timestamp of the most recent frame, so the UI can age its own display. */
   lastFrameAt: number | null;
   stoppedReason: string | null;
@@ -26,6 +45,11 @@ const EMPTY: LiveTelemetry = {
   cpu: null,
   memory: null,
   network: null,
+  processes: null,
+  services: null,
+  disk: null,
+  ports: null,
+  errors: {},
   lastFrameAt: null,
   stoppedReason: null,
 };
@@ -67,9 +91,26 @@ export function useTelemetry(serverId: string | null): LiveTelemetry {
           case 'network':
             next.network = frame.data;
             break;
-          default:
-            // Signals this screen does not read yet are ignored rather than
-            // coerced into one of the three above.
+          case 'processes':
+            next.processes = frame.data;
+            next.errors = without(prev.errors, 'processes');
+            break;
+          case 'services':
+            next.services = frame.data;
+            next.errors = without(prev.errors, 'services');
+            break;
+          case 'disk':
+            next.disk = frame.data;
+            next.errors = without(prev.errors, 'disk');
+            break;
+          case 'ports':
+            next.ports = frame.data;
+            next.errors = without(prev.errors, 'ports');
+            break;
+          case 'error':
+            next.errors = { ...prev.errors, [frame.data.collector]: frame.data.message };
+            break;
+          case 'hello':
             break;
         }
         return next;
@@ -91,6 +132,14 @@ export function useTelemetry(serverId: string | null): LiveTelemetry {
   }, [serverId]);
 
   return live;
+}
+
+/** A successful sample clears the previous failure for the same collector. */
+function without(errors: Record<string, string>, key: string): Record<string, string> {
+  if (!(key in errors)) return errors;
+  const rest = { ...errors };
+  delete rest[key];
+  return rest;
 }
 
 /** Format a byte count for display. Returns null for null, never "0 B". */

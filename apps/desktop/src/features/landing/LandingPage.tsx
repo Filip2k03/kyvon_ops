@@ -586,7 +586,7 @@ export const LandingPage: React.FC = () => {
           <div className="lg:col-span-6 space-y-6">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>KYVONOPS V3.0 — PRODUCTION STABLE</span>
+              <span>KYVONOPS V4.1 — DEVELOPMENT PREVIEW</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
@@ -854,10 +854,10 @@ export const LandingPage: React.FC = () => {
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               <Download className="w-6 h-6 text-info" />
-              Download KyvonOPS V3.0 Binaries
+              Download KyvonOPS V4.1 Releases
             </h2>
             <p className="text-xs sm:text-sm text-secondary mt-1">
-              Production builds compiled for macOS, Linux, Windows, Android, and iOS.
+              Download only published, verified release assets. Unavailable platforms remain clearly marked.
             </p>
           </div>
           <div className="flex items-center gap-2">

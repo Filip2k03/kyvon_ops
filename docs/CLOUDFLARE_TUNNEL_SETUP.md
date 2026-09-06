@@ -2,6 +2,12 @@
 
 Use this runbook on the approved VPN test host after the static deployment passes. Keep the tunnel token in the server’s protected environment or secret manager; never commit it or paste it into frontend code.
 
+**Current evidence (V4.1 review):** the host currently serves Nginx on
+`127.0.0.1:8080`, but `cloudflared` and `/etc/cloudflared/config.yml` were not
+present during the latest inspection. The tunnel is therefore not configured
+or verified. The deployment script now fails closed by default when this
+condition is detected; use `REQUIRE_TUNNEL=0` only for a private VPN preview.
+
 ## Install and configure
 
 Install `cloudflared` using Cloudflare’s signed package for the server distribution. Authenticate with the project’s Cloudflare account, then create or select a tunnel:

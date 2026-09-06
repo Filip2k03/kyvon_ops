@@ -8,7 +8,7 @@ use kyvon_security::Cmd;
 use russh::client::{self, Handle, Msg};
 use russh::keys::{PrivateKeyWithHashAlg, PublicKeyOrCertificate};
 use russh::{Channel, ChannelMsg, Disconnect};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, warn};
 
 use crate::hostkey::{PresentedKey, SharedVerifier, Verdict};
@@ -295,7 +295,11 @@ impl SshSession {
             let _ = tx.send(TerminalItem::Exited(None)).await;
         });
 
-        Ok(TerminalHandle { write, rx, task })
+        Ok(TerminalHandle {
+            write: Mutex::new(write),
+            rx: Mutex::new(rx),
+            task,
+        })
     }
 
     /// Open an SFTP subsystem channel over this session.
@@ -384,8 +388,8 @@ pub enum TerminalItem {
 
 /// A live interactive shell.
 pub struct TerminalHandle {
-    write: russh::ChannelWriteHalf<Msg>,
-    rx: mpsc::Receiver<TerminalItem>,
+    write: Mutex<russh::ChannelWriteHalf<Msg>>,
+    rx: Mutex<mpsc::Receiver<TerminalItem>>,
     task: tokio::task::JoinHandle<()>,
 }
 
@@ -393,6 +397,8 @@ impl TerminalHandle {
     /// Send keystrokes to the remote shell.
     pub async fn write(&self, bytes: &[u8]) -> Result<()> {
         self.write
+            .lock()
+            .await
             .data(bytes)
             .await
             .map_err(|e| KyvonError::Transport(e.to_string()))
@@ -402,18 +408,21 @@ impl TerminalHandle {
     /// redraw at the right size.
     pub async fn resize(&self, cols: u16, rows: u16) -> Result<()> {
         self.write
+            .lock()
+            .await
             .window_change(cols as u32, rows as u32, 0, 0)
             .await
             .map_err(|e| KyvonError::Transport(e.to_string()))
     }
 
-    pub async fn next(&mut self) -> Option<TerminalItem> {
-        self.rx.recv().await
+    pub async fn next(&self) -> Option<TerminalItem> {
+        self.rx.lock().await.recv().await
     }
 
     pub async fn close(&self) {
-        let _ = self.write.eof().await;
-        let _ = self.write.close().await;
+        let write = self.write.lock().await;
+        let _ = write.eof().await;
+        let _ = write.close().await;
     }
 }
 

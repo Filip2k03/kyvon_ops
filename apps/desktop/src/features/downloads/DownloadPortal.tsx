@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  Download, Apple, Monitor, Smartphone, Terminal, Heart, 
+  Apple, Monitor, Smartphone, Terminal, Heart,
   Sparkles, ShieldCheck, ArrowUpRight, Cpu, Layers,
   CreditCard, Check, Compass
 } from 'lucide-react';
 import { DONATION_TIERS, StripeClient } from '../../lib/api/stripe';
+import { SponsorBanner } from '../../components/monetization/SponsorBanner';
 
 export const DownloadPortal: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState<number>(15);
@@ -54,139 +55,48 @@ export const DownloadPortal: React.FC = () => {
         </p>
       </div>
 
-      {/* Platform Download Cards Grid */}
+      {/* Platform availability: only link artifacts that actually exist. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* macOS */}
-        <div className="bg-surface border border-border hover:border-info/40 rounded-xl p-5 transition-all shadow-sm flex flex-col justify-between">
+        {[{
+          name: 'macOS',
+          icon: <Apple className="w-6 h-6" aria-hidden="true" />,
+          badge: 'Not published',
+          description: 'A signed macOS installer is not published yet. Check the release page for verified artifacts.',
+        }, {
+          name: 'Windows',
+          icon: <Monitor className="w-6 h-6" aria-hidden="true" />,
+          badge: 'Not published',
+          description: 'A signed Windows installer is not published yet. Check the release page for verified artifacts.',
+        }, {
+          name: 'Linux',
+          icon: <Terminal className="w-6 h-6" aria-hidden="true" />,
+          badge: 'Source available',
+          description: 'Build from the repository with the documented source-workspace checks while release packaging is completed.',
+        }, {
+          name: 'Mobile',
+          icon: <Smartphone className="w-6 h-6" aria-hidden="true" />,
+          badge: 'Not published',
+          description: 'No verified Android or iOS package is published for V4.1.',
+        }].map((platform) => (
+        <div key={platform.name} className="bg-surface border border-border rounded-xl p-5 transition-all shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-neutral-800 rounded-lg text-white">
-                <Apple className="w-6 h-6" />
+                {platform.icon}
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white">macOS 12+</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-secondary">{platform.badge}</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-1">macOS Universal</h3>
-            <p className="text-xs text-secondary mb-4">
-              Native Apple Silicon (M1/M2/M3/M4) & Intel 64-bit DMG bundle.
-            </p>
+            <h3 className="text-base font-bold text-white mb-1">{platform.name}</h3>
+            <p className="text-xs text-secondary mb-4">{platform.description}</p>
           </div>
           <div className="space-y-2">
-            <a
-              href="#download-apple-silicon"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-2.0.0-aarch64.dmg'); }}
-              className="w-full py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center justify-center space-x-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Apple Silicon</span>
-            </a>
-            <a
-              href="#download-intel"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-2.0.0-x86_64.dmg'); }}
-              className="w-full py-1.5 bg-elevated hover:bg-hover border border-border text-secondary hover:text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
-            >
-              <span>Intel x64 (.dmg)</span>
+            <a href="https://github.com/Filip2k03/kyvon_ops/releases" target="_blank" rel="noreferrer" className="w-full py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center justify-center space-x-1.5">
+              <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>View verified releases</span>
             </a>
           </div>
         </div>
-
-        {/* Windows */}
-        <div className="bg-surface border border-border hover:border-info/40 rounded-xl p-5 transition-all shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
-                <Monitor className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">Win 10/11</span>
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Windows 64-bit</h3>
-            <p className="text-xs text-secondary mb-4">
-              NSIS standalone installer with auto-elevation and portable ZIP.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <a
-              href="#download-win-nsis"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-2.0.0-setup.exe'); }}
-              className="w-full py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center justify-center space-x-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Installer (.exe)</span>
-            </a>
-            <a
-              href="#download-win-zip"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-2.0.0-win-portable.zip'); }}
-              className="w-full py-1.5 bg-elevated hover:bg-hover border border-border text-secondary hover:text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
-            >
-              <span>Portable (.zip)</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Linux */}
-        <div className="bg-surface border border-border hover:border-info/40 rounded-xl p-5 transition-all shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400">
-                <Terminal className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">Linux</span>
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Linux Universal</h3>
-            <p className="text-xs text-secondary mb-4">
-              Zero-dependency standalone AppImage and native Debian package.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <a
-              href="#download-appimage"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-2.0.0.AppImage'); }}
-              className="w-full py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center justify-center space-x-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download AppImage</span>
-            </a>
-            <a
-              href="#download-deb"
-              onClick={(e) => { e.preventDefault(); alert('Downloading kyvonops_2.0.0_amd64.deb'); }}
-              className="w-full py-1.5 bg-elevated hover:bg-hover border border-border text-secondary hover:text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
-            >
-              <span>Debian (.deb)</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Mobile (.apk & iOS) */}
-        <div className="bg-surface border border-border hover:border-info/40 rounded-xl p-5 transition-all shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
-                <Smartphone className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Mobile</span>
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Mobile Edition</h3>
-            <p className="text-xs text-secondary mb-4">
-              Android standalone APK package and iOS TestFlight / IPA build.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <a
-              href="#download-apk"
-              onClick={(e) => { e.preventDefault(); alert('Downloading KyvonOPS-mobile.apk'); }}
-              className="w-full py-2 bg-info hover:bg-info/90 text-background font-bold text-xs rounded-lg transition-colors flex items-center justify-center space-x-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Android APK (.apk)</span>
-            </a>
-            <a
-              href="#download-ios-ipa"
-              onClick={(e) => { e.preventDefault(); alert('Opening iOS TestFlight Public Invite'); }}
-              className="w-full py-1.5 bg-elevated hover:bg-hover border border-border text-secondary hover:text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
-            >
-              <span>iOS TestFlight</span>
-            </a>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Stripe Donation & Community Sponsorship Section */}
@@ -208,7 +118,7 @@ export const DownloadPortal: React.FC = () => {
             <div className="space-y-2 pt-2 text-xs text-secondary">
               <div className="flex items-center space-x-2">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Zero telemetry selling or third-party ads ever</span>
+                <span>No advertising scripts in the operational workspace</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Check className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -310,6 +220,8 @@ export const DownloadPortal: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <SponsorBanner placement="downloads" />
 
       {/* Deep Thinking: Developer Architecture & Operating Directives */}
       <div className="bg-surface border border-border rounded-xl p-8 shadow-sm space-y-6">

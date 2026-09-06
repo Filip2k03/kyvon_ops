@@ -27,6 +27,8 @@ pub enum Payload {
     Disk(DiskSample),
     Processes(ProcessSample),
     Services(ServiceSample),
+    /// Listening sockets. Sampled on the slow cadence alongside `Disk`.
+    Ports(PortSample),
     /// A non-fatal problem inside the collector, surfaced rather than dropped.
     Error(AgentError),
 }
@@ -41,6 +43,7 @@ impl Payload {
             Payload::Disk(_) => "disk",
             Payload::Processes(_) => "processes",
             Payload::Services(_) => "services",
+            Payload::Ports(_) => "ports",
             Payload::Error(_) => "error",
         }
     }
@@ -187,6 +190,16 @@ pub struct NetworkInterface {
     pub tx_errors: u64,
     pub rx_dropped: u64,
     pub tx_dropped: u64,
+}
+
+/// Every listening socket the host reported in one reading.
+///
+/// An empty list is a real observation (nothing is listening, or `ss` could
+/// not see anything); the absence of a `Ports` frame means `ss` is not
+/// installed and the fact is unknown. The two must stay distinguishable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PortSample {
+    pub ports: Vec<PortInfo>,
 }
 
 /// A socket in the LISTEN state, from `ss -lntup` or /proc/net/{tcp,udp}.

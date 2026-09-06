@@ -143,6 +143,15 @@ pub fn block_to_frames(state: &mut TelemetryState, block: &Block) -> Vec<Frame> 
         }
     }
 
+    // `ss` is only present when the host has it; a block without the section
+    // yields no frame, so "unknown" never reads as "nothing listening".
+    if let Some(body) = block.section("ss") {
+        match commands::parse_ss(body) {
+            Ok(ports) => frames.push(frame(ts, Payload::Ports(kyvon_core::PortSample { ports }))),
+            Err(e) => frames.push(error_frame(ts, "ports", e)),
+        }
+    }
+
     frames
 }
 
@@ -228,6 +237,9 @@ Filesystem     1B-blocks        Used   Available Capacity Mounted on
 /dev/vda1   105089261568 71234567890 28456789012      72% /
 %%KYVON/1 SEC mounts
 /dev/vda1 / ext4 rw,relatime 0 0
+%%KYVON/1 SEC ss
+tcp   LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:((\"nginx\",pid=842,fd=6))
+tcp   LISTEN 0      4096       127.0.0.1:5432      0.0.0.0:*
 %%KYVON/1 END
 %%KYVON/1 TICK 1770000001000 1
 %%KYVON/1 SEC stat
@@ -296,6 +308,39 @@ Inter-|   Receive                                                |  Transmit
             .expect("disk frame");
         assert_eq!(disk.filesystems.len(), 1);
         assert_eq!(disk.filesystems[0].fs_type, "ext4");
+    }
+
+    #[test]
+    fn listening_sockets_carry_exposure_and_owner_when_visible() {
+        let frames = frames_from(STREAM);
+        let ports = frames
+            .iter()
+            .find_map(|f| match &f.payload {
+                Payload::Ports(p) => Some(p),
+                _ => None,
+            })
+            .expect("ports frame");
+        assert_eq!(ports.ports.len(), 2);
+        let web = &ports.ports[0];
+        assert_eq!(web.port, 80);
+        assert_eq!(web.exposure, kyvon_core::Exposure::AllInterfaces);
+        assert_eq!(web.process.as_deref(), Some("nginx"));
+        assert_eq!(web.pid, Some(842));
+        let db = &ports.ports[1];
+        assert_eq!(db.exposure, kyvon_core::Exposure::Loopback);
+        assert_eq!(db.process, None, "an unseen owner is absent, not guessed");
+    }
+
+    #[test]
+    fn a_host_without_ss_produces_no_ports_frame() {
+        let stream = "%%KYVON/1 TICK 1 0\n%%KYVON/1 SEC meminfo\nMemTotal: 1024 kB\nMemFree: 512 kB\nMemAvailable: 512 kB\n%%KYVON/1 END\n";
+        let frames = frames_from(stream);
+        assert!(
+            !frames
+                .iter()
+                .any(|f| matches!(f.payload, Payload::Ports(_))),
+            "unknown must not be reported as an empty socket list"
+        );
     }
 
     #[test]

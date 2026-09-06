@@ -1,4 +1,4 @@
-# KyvonOPS V3.0
+# KyvonOPS V4.1
 
 A local-first infrastructure operations project for developers, independent operators, and teams. The target architecture combines a Tauri desktop application, Rust domain libraries, local SQLite storage, direct SSH, and a policy-controlled MCP gateway.
 
@@ -14,15 +14,35 @@ After the local deployment passes, follow the [Cloudflare Tunnel setup](docs/CLO
 
 For the controlled VPN-based remote deployment and installation verification sequence, use the [deployment test plan](docs/DEPLOYMENT_TEST_PLAN.md). It keeps operator VPN and SSH credentials outside this repository.
 
+The V4.1 evidence matrix and release gate are maintained in [production readiness](docs/V4.1_PRODUCTION_READINESS.md) and [release gate](docs/V4.1_RELEASE_GATE.md). They record verified checks and explicit blockers; they do not substitute for deployment evidence.
+
+The intended public installation sequence and shared security boundary are documented in the [V4.1 installation flow](docs/INSTALLATION_FLOW.md).
+
+Monetization is isolated to optional public/download sponsor placements; the operational control plane remains ad-free. See the [V4.1 monetization boundary](docs/MONETIZATION.md).
+
+For the final evidence-based review, see the [launch checklist](docs/V4.1_FINAL_LAUNCH_CHECKLIST.md) and [release report](docs/V4.1_FINAL_RELEASE_REPORT.md).
+
+The system boundaries and shared control-gate model are described in the [V4.1 architecture](docs/V4.1_ARCHITECTURE.md).
+
+Platform-specific desktop setup is documented in [V4.1 desktop installation](docs/V4.1_DESKTOP_INSTALLATION.md).
+
 ## Installation and availability
 
 Use only artifacts actually published in a release. Review its operating-system requirements, checksums, signing information, and known limitations. The website does not fabricate installer URLs or imply that a package exists for every platform.
 
-V3.0 targets macOS, Windows, and Linux desktop users. Android and iOS companion functionality is under development; packaging scripts alone do not establish a working mobile product. Native builds, clean installation, credential custody, updates, and end-to-end operations must be verified before a stable release.
+V4.1 targets macOS, Windows, and Linux desktop users. Android and iOS companion functionality is under development; packaging scripts alone do not establish a working mobile product. Native builds, clean installation, credential custody, updates, and end-to-end operations must be verified before a stable release.
 
 ## Development
 
 Prerequisites: Rust matching `Cargo.toml`, Bun, and the native toolchain required by Tauri for your operating system.
+
+Check the local toolchain without changing the machine, or install the locked
+frontend dependencies with the repository helper:
+
+```sh
+./scripts/install.sh --check
+./scripts/install.sh --frontend
+```
 
 ```sh
 git clone https://github.com/Filip2k03/kyvon_ops.git
@@ -37,7 +57,6 @@ Build and test the public frontend:
 
 ```sh
 cd apps/desktop
-bun install --frozen-lockfile
 bun test tests/public-website.test.tsx
 bun run build
 ```
@@ -70,6 +89,6 @@ The build emits static files into `apps/desktop/dist`. `bun run dev` starts an o
 
 ## Contributing and release work
 
-Read [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), and the [V3.0 specification](PROMPTS.md) before changing behavior. Use Conventional Commits, preserve unrelated edits, and include tests for new operational boundaries. Document unavailable functionality and exact validation results.
+Read [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), and the [product specification](PROMPTS.md) before changing behavior. Use Conventional Commits, preserve unrelated edits, and include tests for new operational boundaries. Document unavailable functionality and exact validation results.
 
 Release publication requires verified native artifacts, signing and update checks, real backend behavior, and a tested hosting destination. Source changes and frontend tests do not establish those gates. Donations and promotional material must use verified destinations and truthful feature claims; no test checkout should be presented as a real payment flow.

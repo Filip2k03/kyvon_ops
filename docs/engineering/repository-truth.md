@@ -12,10 +12,10 @@ audit is worse than none, because it carries the authority of an audit.
 ## How to re-verify
 
 ```sh
-cargo test --workspace --all-features        # 196 pass
+cargo test --workspace --all-features        # 199 pass
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
-cd apps/desktop && bun run build && bun test # 26 pass
+cd apps/desktop && bun run build && bun run test # 46 unit-test pass; bun run test:e2e for Playwright
 ```
 
 CI runs all four on every push and is green.
@@ -44,7 +44,7 @@ CI runs all four on every push and is green.
 | **MCP protocol** | Partial | `kyvon-policy::mcp_server` handles initialize / tools/list / tools/call / resources / prompts, validates envelopes, answers notifications correctly. Tool schemas are typed and role-filtered. **Tool bodies return shaped responses, not live infrastructure data** — the gateway is not wired to `AppState`. |
 | **MCP ↔ Claude / Codex** | Not verified | `cargo run -p kyvon-mcp` starts and speaks the protocol. No end-to-end session with either client has been run. Defaults to `McpRole::Observer`. |
 | **Approval engine** | Partial | `ApprovalGate` assesses tier, issues requests, expires them; `TokenAuthority` issues single-use, server-scoped, TTL-bounded tokens. **No UI, and nothing gates an MCP write on an approval yet.** |
-| **Terminal (PTY)** | Not implemented | All four commands return an explicit error. `TerminalView.tsx` refuses input rather than simulating. Assigned to Codex — see `docs/CODEX-HANDOFF.md`. |
+| **Terminal (PTY)** | Implemented, unproven against a live host | `SshSession::open_terminal` is exposed through real Tauri open/write/resize/close commands. Raw PTY bytes are base64-framed on `kyvon://terminal`; xterm.js handles scrollback, search, selection copy, resize, and honest close/error states. A live desktop session still needs verification. |
 | **Files / SFTP** | Not implemented | Commands return explicit errors. |
 | **Digital twin / topology** | Partial | `kyvon-topology` parses nginx, maps Docker, correlates ports to inodes, attributes cgroups — with tests. Not called by any command. |
 | **Diagnostics** | Partial | `kyvon-diagnostics` computes capacity, outage risk, latency decomposition, causality — with tests. Not called by any command. |

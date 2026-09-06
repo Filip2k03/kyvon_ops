@@ -21,6 +21,8 @@ import {
 } from '../../lib/releases';
 
 const repository = 'https://github.com/Filip2k03/kyvon_ops';
+const installScript =
+  'https://raw.githubusercontent.com/Filip2k03/kyvon_ops/main/scripts/install.sh';
 const button =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-400';
 
@@ -115,6 +117,49 @@ export function Downloads() {
         . Availability is not verified by this website — install only artifacts published by the
         project, and check the signature where one is provided.
       </p>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-sky-400/25 bg-sky-400/5 p-6">
+          <div className="flex items-center gap-3">
+            <Monitor aria-hidden="true" className="h-5 w-5 text-sky-300" />
+            <h3 className="text-lg font-medium">Recommended: desktop app</h3>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Use a published, signed release for normal workstation use. The desktop app keeps your
+            server profiles and credentials on your machine.
+          </p>
+          <a
+            className={`${button} mt-5 border border-sky-400/40 text-sky-200 hover:bg-sky-400/10`}
+            href={`${repository}/releases`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Github aria-hidden="true" className="h-4 w-4" /> Browse desktop releases
+          </a>
+        </div>
+        <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-6">
+          <div className="flex items-center gap-3">
+            <Terminal aria-hidden="true" className="h-5 w-5 text-slate-300" />
+            <h3 className="text-lg font-medium">Source setup helper</h3>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            For contributors without a published installer, clone the repository, inspect the reviewed
+            script, then run the locked dependency setup. It does not configure a server or handle secrets.
+          </p>
+          <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-950/70 p-3 text-xs leading-6 text-slate-300"><code>{`git clone ${repository}.git
+cd kyvon_ops
+./scripts/install.sh --check
+./scripts/install.sh --frontend`}</code></pre>
+          <a
+            className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm text-sky-300 underline underline-offset-4 hover:text-sky-200"
+            href={installScript}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Download aria-hidden="true" className="h-4 w-4" /> Inspect install.sh
+          </a>
+        </div>
+      </div>
 
       {state.state === 'none' && (
         <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/50 p-6 sm:p-8">

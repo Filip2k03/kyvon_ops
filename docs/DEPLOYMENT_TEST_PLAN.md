@@ -10,8 +10,8 @@ Run from the repository root:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
+./scripts/install.sh --frontend
 cd apps/desktop
-bun install --frozen-lockfile
 bun run build
 bun test tests/public-website.test.tsx
 ```
@@ -28,9 +28,26 @@ SSH_HOST=<test-host> SSH_USER=<operator-user> SSH_KEY=<key-path> ./scripts/live-
 
 Do not use production hosts for the first installation test. Confirm free disk space, available port `8080`, and a working Nginx/systemd toolchain before deployment.
 
+Verify the interactive prerequisite separately before testing the desktop terminal:
+
+```sh
+SSH_HOST=<test-host> SSH_USER=<operator-user> SSH_KEY=<key-path> ./scripts/live-pty-smoke.sh
+```
+
 ## 3. Static deployment test
 
-Provide `RELEASE_MANIFEST` only when it contains signed artifacts with HTTPS URLs. Then run `scripts/deploy-host.sh` on the approved host. Without that variable, the script deliberately deploys static assets but leaves the updater endpoint disabled.
+Build and package the exact artifact before deployment:
+
+```sh
+(cd apps/desktop && bun run build)
+./scripts/package-web-release.sh
+```
+
+Keep the generated `.tar.gz` and `.sha256` together with the source commit. The
+checksum is provenance for the bundle copied to the origin; it is not a release
+signature.
+
+Provide `RELEASE_MANIFEST` only when it contains signed artifacts with HTTPS URLs. Then run `scripts/deploy-host.sh` from any directory on the approved host; it resolves the repository root from its own path. Without that variable, the script deliberately deploys static assets but leaves the updater endpoint disabled. Use `scripts/deploy-host.sh --help` to review supported environment overrides.
 
 Verify:
 

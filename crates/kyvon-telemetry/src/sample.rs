@@ -18,87 +18,36 @@
 //! * **Rates need two readings.** The first block after connecting produces no
 //!   CPU or network sample at all, because a rate computed from one reading
 //!   would be an invention.
+//!
+//! The actual walk lives in [`crate::protocol::block_to_frames`]; this module
+//! is the stable entry point and the home of the tests that pin those rules.
+//! An earlier version of this function handled only CPU, memory and network,
+//! which is why the desktop's process, storage and port screens received
+//! nothing even though the collector was shipping `ps`, `df` and `ss`.
 
-use kyvon_core::{Frame, MemorySample, Payload, PROTOCOL_VERSION};
+use kyvon_core::Frame;
 
 use crate::collector::Block;
-use crate::proc;
+use crate::protocol::block_to_frames;
 use crate::state::TelemetryState;
 
 /// Convert one block into every sample it supports.
 ///
-/// Returns frames in a stable order — CPU, memory, network — so a consumer
-/// appending to a series does not have to sort. An empty result is legitimate:
-/// it means this block carried nothing measurable, most often because it is
-/// the first one and every rate is still undefined.
+/// Returns frames in a stable order — CPU, memory, network, processes,
+/// services, disk, ports — so a consumer appending to a series does not have
+/// to sort. An empty result is legitimate: it means this block carried nothing
+/// measurable, most often because it is the first one and every rate is still
+/// undefined. A section that fails to parse yields a [`kyvon_core::Payload::Error`]
+/// frame naming the collector, never a silently absent signal.
 pub fn frames_from_block(block: &Block, state: &mut TelemetryState) -> Vec<Frame> {
-    let mut frames = Vec::new();
-    let ts = block.ts;
-
-    // CPU needs both /proc/stat and /proc/loadavg. Load average is not a rate,
-    // but it belongs to the same sample, so a missing loadavg degrades to
-    // zeroes there rather than costing the whole CPU reading.
-    if let Some(stat) = block.section("stat").and_then(|s| proc::parse_stat(s).ok()) {
-        let load = block
-            .section("loadavg")
-            .and_then(|s| proc::parse_loadavg(s).ok())
-            .unwrap_or([0.0; 3]);
-        if let Some(cpu) = state.push_cpu(ts, stat, load) {
-            frames.push(frame(ts, Payload::Cpu(cpu)));
-        }
-    }
-
-    // Memory is a level, not a rate, so it is reported from the first block.
-    if let Some(mem) = block
-        .section("meminfo")
-        .and_then(|s| proc::parse_meminfo(s).ok())
-    {
-        frames.push(frame(
-            ts,
-            Payload::Memory(MemorySample {
-                // `parse_meminfo` has already converted /proc/meminfo's kB
-                // into bytes, so no scaling happens here.
-                total_bytes: mem.total,
-                used_bytes: mem.used(),
-                available_bytes: mem.available,
-                free_bytes: mem.free,
-                cached_bytes: mem.cached,
-                buffers_bytes: mem.buffers,
-                swap_total_bytes: mem.swap_total,
-                swap_used_bytes: mem.swap_used(),
-                // `None` when /proc/pressure is absent — an older kernel
-                // cannot measure this, and 0.0 would claim it had.
-                pressure_some_avg60: block
-                    .section("pressure_mem")
-                    .and_then(proc::parse_pressure_some_avg60),
-            }),
-        ));
-    }
-
-    if let Some(counters) = block
-        .section("netdev")
-        .and_then(|s| proc::parse_net_dev(s).ok())
-    {
-        if let Some(net) = state.push_net(ts, counters) {
-            frames.push(frame(ts, Payload::Network(net)));
-        }
-    }
-
-    frames
-}
-
-fn frame(ts: kyvon_core::TimestampMs, payload: Payload) -> Frame {
-    Frame {
-        version: PROTOCOL_VERSION,
-        ts,
-        payload,
-    }
+    block_to_frames(state, block)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::collector::{Block, Section};
+    use kyvon_core::Payload;
 
     fn block(ts: i64, sections: &[(&str, &str)]) -> Block {
         Block {
@@ -183,6 +132,41 @@ mod tests {
                 .any(|f| matches!(f.payload, Payload::Memory(_))),
             "and must not invent a memory reading either"
         );
+        assert!(
+            frames.iter().any(|f| matches!(
+                &f.payload,
+                Payload::Error(e) if e.collector == "memory"
+            )),
+            "the failure is reported to the operator rather than swallowed"
+        );
+    }
+
+    #[test]
+    fn slow_cadence_sections_reach_the_desktop() {
+        let mut state = TelemetryState::new();
+        let frames = frames_from_block(
+            &block(
+                1_000,
+                &[
+                    ("ps", "  842     1 www-data  2.4  1.8 10240 S  5 nginx: worker process\n"),
+                    ("df", "Filesystem 1B-blocks Used Available Capacity Mounted on\n/dev/vda1 100 60 40 60% /\n"),
+                    ("dfi", "Filesystem Inodes IUsed IFree IUse% Mounted on\n/dev/vda1 1000 900 100 90% /\n"),
+                    ("mounts", "/dev/vda1 / ext4 rw 0 0\n"),
+                    ("ss", "tcp LISTEN 0 511 0.0.0.0:80 0.0.0.0:*\n"),
+                ],
+            ),
+            &mut state,
+        );
+        let kinds: Vec<&str> = frames.iter().map(|f| f.payload.kind()).collect();
+        assert_eq!(kinds, ["processes", "disk", "ports"]);
+        let Payload::Disk(d) = &frames[1].payload else {
+            unreachable!()
+        };
+        assert_eq!(
+            d.filesystems[0].inodes_used, 900,
+            "inode counts are merged from df -i"
+        );
+        assert_eq!(d.filesystems[0].fs_type, "ext4");
     }
 
     #[test]

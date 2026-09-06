@@ -51,3 +51,11 @@ export const onCollectorStopped = (fn: (e: CollectorStopped) => void) =>
 /** The backend asking whether to trust a host key. */
 export const onHostKeyPrompt = <T,>(fn: (e: T) => void) =>
   subscribe<T>('kyvon-host-key-prompt', fn);
+
+/** Raw PTY output or a terminal process exiting. */
+export type TerminalEvent =
+  | { event: 'terminal_output'; session_id: string; dataB64: string }
+  | { event: 'terminal_closed'; session_id: string; exit_status: number | null };
+
+export const onTerminalEvent = (fn: (e: TerminalEvent) => void) =>
+  subscribe<TerminalEvent>('kyvon://terminal', fn);

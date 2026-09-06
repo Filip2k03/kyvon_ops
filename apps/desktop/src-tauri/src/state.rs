@@ -61,5 +61,5 @@ pub struct AppState {
     pub sessions: Arc<Mutex<SessionManager>>,
     pub prompts: Arc<PendingPrompts>,
     pub collectors: crate::commands::telemetry::SharedCollectors,
-    pub terminals: Arc<Mutex<HashMap<String, Arc<Mutex<TerminalHandle>>>>>,
+    pub terminals: Arc<Mutex<HashMap<String, Arc<TerminalHandle>>>>,
 }

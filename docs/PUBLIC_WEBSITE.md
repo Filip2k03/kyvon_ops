@@ -12,7 +12,16 @@ Public routes are `/`, `/preview`, `/downloads`, and `/getting-started`. `/landi
 
 Each supported installed release must create its own local persistent database, use the current user's OS credential store, and start with an empty inventory. Onboarding must collect the user's server address and SSH authentication method and require host-key verification. Never ship the maintainer's database, tokens, server profiles, absolute home paths, or private keys.
 
-The website links to GitHub releases instead of constructing installer URLs. Release publication must verify native builds, signing, checksums, update verification, clean installation, and upgrades before advertising availability. Until those checks pass, V3.0 is labeled a development preview. Mobile pairing and native deployment capabilities must not be claimed as available merely because screens render.
+The website links to GitHub releases instead of constructing installer URLs. Release publication must verify native builds, signing, checksums, update verification, clean installation, and upgrades before advertising availability. Until those checks pass, V4.1 is labeled a development preview. Mobile pairing and native deployment capabilities must not be claimed as available merely because screens render.
+
+The downloads page recommends the desktop app for normal users. When no installer has been published, contributors can clone the repository, inspect the source `scripts/install.sh` helper, and run `--check` before `--frontend`; it installs locked local dependencies and does not configure production infrastructure.
+
+The target release journey is download, checksum verification, install, launch,
+first-run setup, VPS connection, fingerprint verification, and the local
+dashboard. The page must not present a step as available until its signed
+artifact or real implementation has been verified. All clients share the same
+identity, capability, approval, connector, and audit boundary described in
+`docs/INSTALLATION_FLOW.md`.
 
 ## Verification
 

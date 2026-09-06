@@ -20,7 +20,6 @@ use base64::Engine as _;
 use kyvon_core::KyvonEvent;
 use kyvon_ssh::session::TerminalItem;
 use tauri::{AppHandle, State};
-use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use super::{emit_event, not_implemented};
@@ -60,7 +59,7 @@ pub async fn open_terminal(
     // Sessions are keyed individually rather than by server: one host may
     // have several terminals open, and closing one must not disturb the rest.
     let session_id = format!("term_{}", Uuid::new_v4().simple());
-    let handle = Arc::new(Mutex::new(handle));
+    let handle = Arc::new(handle);
     state
         .terminals
         .lock()
@@ -75,7 +74,7 @@ pub async fn open_terminal(
         loop {
             // The lock is taken per read and released immediately, so a
             // keystroke arriving mid-read is not blocked behind it.
-            let item = handle.lock().await.next().await;
+            let item = handle.next().await;
 
             match item {
                 Some(TerminalItem::Bytes(bytes)) => emit_event(
@@ -133,7 +132,6 @@ pub async fn write_terminal(
         .cloned()
         .ok_or_else(|| no_such_session(&session_id, "send input"))?;
 
-    let handle = handle.lock().await;
     handle
         .write(data.as_bytes())
         .await
@@ -155,7 +153,6 @@ pub async fn resize_terminal(
         .cloned()
         .ok_or_else(|| no_such_session(&session_id, "resize the terminal"))?;
 
-    let handle = handle.lock().await;
     handle
         .resize(cols, rows)
         .await
@@ -168,7 +165,7 @@ pub async fn close_terminal(state: State<'_, AppState>, session_id: String) -> R
     // already exited, is not an error the operator can act on.
     let removed = state.terminals.lock().await.remove(&session_id);
     if let Some(handle) = removed {
-        handle.lock().await.close().await;
+        handle.close().await;
     }
     Ok(())
 }

@@ -1,20 +1,54 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# KyvonOPS V3.0 Production Host Deployment Script
+# KyvonOPS V4.1 Static Host Deployment Script
 # Target Domain: kyvonops.sys.thuyakyaw.com
 # Architecture: Zero-Open-Port Cloudflare Tunnel + Nginx Ingress + Systemd Daemon
 # ==============================================================================
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 DOMAIN="kyvonops.sys.thuyakyaw.com"
 APP_DIR="/var/www/kyvonops"
 NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
 SERVICE_FILE="/etc/systemd/system/kyvonops-web.service"
 LOCAL_PORT=8080
 BUILD_ON_HOST="${BUILD_ON_HOST:-0}"
+REQUIRE_TUNNEL="${REQUIRE_TUNNEL:-1}"
+
+case "${1:-}" in
+  -h|--help)
+    cat <<'USAGE'
+Usage: scripts/deploy-host.sh
+
+Deploy the already-built desktop web bundle to the configured Linux host.
+Defaults to BUILD_ON_HOST=0 so the host never installs dependencies. Set
+BUILD_ON_HOST=1 only when Bun and the lockfile are available on the host.
+
+Environment: BUILD_ON_HOST, RELEASE_MANIFEST, DOMAIN, APP_DIR, LOCAL_PORT,
+REQUIRE_TUNNEL. REQUIRE_TUNNEL=1 (the default) fails closed when cloudflared
+is not installed and configured for the target hostname. Set it to 0 only for
+an explicitly private/VPN preview that is not presented as public production.
+The script requires sudo, rsync, and nginx on the target host.
+USAGE
+    exit 0
+    ;;
+  *)
+    if [ "$#" -gt 0 ]; then
+      echo "ERROR: unknown argument: $1 (use --help)" >&2
+      exit 2
+    fi
+    ;;
+esac
+
+DOMAIN="${DOMAIN:-kyvonops.sys.thuyakyaw.com}"
+APP_DIR="${APP_DIR:-/var/www/kyvonops}"
+NGINX_CONF="/etc/nginx/sites-available/${DOMAIN}"
+SERVICE_FILE="/etc/systemd/system/kyvonops-web.service"
+LOCAL_PORT="${LOCAL_PORT:-8080}"
 
 echo "================================================================================"
-echo "          KyvonOPS V3.0 Host Deployment — ${DOMAIN}"
+echo "          KyvonOPS V4.1 Host Deployment — ${DOMAIN}"
 echo "================================================================================"
 
 # Step 1: Preflight Environment Checks
@@ -35,12 +69,12 @@ echo "    ✓ Disk space headroom safe (${AVAILABLE_KB} KB available)"
 # Step 2: Build Web Application
 echo "==> [2/6] Building Production Web & Companion Bundles..."
 if [ "${BUILD_ON_HOST}" = "1" ]; then
-    cd apps/desktop
+    cd "${ROOT_DIR}/apps/desktop"
     bun install --frozen-lockfile
     bun run build
     cd ../..
 else
-    test -f apps/desktop/dist/index.html || {
+    test -f "${ROOT_DIR}/apps/desktop/dist/index.html" || {
         echo "ERROR: apps/desktop/dist/index.html is missing. Build locally or set BUILD_ON_HOST=1."
         exit 1
     }
@@ -51,7 +85,7 @@ fi
 echo "==> [3/6] Deploying Static Distribution to ${APP_DIR}..."
 sudo mkdir -p "${APP_DIR}"
 sudo find "${APP_DIR}" -type f \( -name '._*' -o -name '.DS_Store' \) -delete
-sudo rsync -av --delete --exclude='._*' --exclude='.DS_Store' apps/desktop/dist/ "${APP_DIR}/"
+sudo rsync -av --delete --exclude='._*' --exclude='.DS_Store' "${ROOT_DIR}/apps/desktop/dist/" "${APP_DIR}/"
 sudo chown -R www-data:www-data "${APP_DIR}" || true
 
 # Never invent updater metadata. A production deployment may publish an
@@ -76,7 +110,7 @@ fi
 # Step 4: Configure Nginx Ingress & SPA Routing
 echo "==> [4/6] Provisioning Nginx Virtual Host for ${DOMAIN}..."
 cat <<EOF | sudo tee "${NGINX_CONF}" > /dev/null
-# KyvonOPS V3.0 Nginx Server Block for ${DOMAIN}
+# KyvonOPS V4.1 Nginx Server Block for ${DOMAIN}
 server {
     listen ${LOCAL_PORT};
     listen [::]:${LOCAL_PORT};
@@ -134,12 +168,29 @@ fi
 # Step 5: Configure Zero-Open-Port Cloudflare Tunnel
 echo "==> [5/6] Verifying Cloudflare Tunnel Configuration..."
 CLOUDFLARE_TUNNEL_CONFIG="/etc/cloudflared/config.yml"
-if [ -f "${CLOUDFLARE_TUNNEL_CONFIG}" ]; then
-    echo "    Found active cloudflared config. Ensuring ingress route for ${DOMAIN}..."
+if [ "${REQUIRE_TUNNEL}" = "1" ]; then
+    command -v cloudflared >/dev/null 2>&1 || {
+        echo "ERROR: cloudflared is required for public deployment but is not installed." >&2
+        echo "       Use REQUIRE_TUNNEL=0 only for a private/VPN preview." >&2
+        exit 1
+    }
+    test -s "${CLOUDFLARE_TUNNEL_CONFIG}" || {
+        echo "ERROR: ${CLOUDFLARE_TUNNEL_CONFIG} is missing; public tunnel routing is not configured." >&2
+        exit 1
+    }
+    grep -Eq "hostname:[[:space:]]*${DOMAIN}([[:space:]]|$)" "${CLOUDFLARE_TUNNEL_CONFIG}" || {
+        echo "ERROR: tunnel config has no ingress hostname for ${DOMAIN}." >&2
+        exit 1
+    }
+    grep -Eq "service:[[:space:]]*https?://(127\\.0\\.0\\.1|localhost):${LOCAL_PORT}([[:space:]]|$)" "${CLOUDFLARE_TUNNEL_CONFIG}" || {
+        echo "ERROR: tunnel config does not route ${DOMAIN} to localhost:${LOCAL_PORT}." >&2
+        exit 1
+    }
+    echo "    Found cloudflared and verified ${DOMAIN} -> localhost:${LOCAL_PORT}."
+elif [ -f "${CLOUDFLARE_TUNNEL_CONFIG}" ]; then
+    echo "    Private preview mode: tunnel config present but not enforced."
 else
-    echo "    To route traffic via Cloudflare Zero Trust Tunnel without opening firewall ports:"
-    echo "    1. cloudflared tunnel route dns <tunnel-id> ${DOMAIN}"
-    echo "    2. Point tunnel ingress to http://localhost:${LOCAL_PORT}"
+    echo "    Private preview mode: no cloudflared config; public routing is unavailable."
 fi
 
 # Step 6: Post-flight Verification
@@ -153,4 +204,8 @@ else
 fi
 echo "    Local Ingress:      http://127.0.0.1:${LOCAL_PORT}"
 echo ""
-echo "Deployment completed successfully. KyvonOPS static web assets are ready for ${DOMAIN}."
+if [ "${REQUIRE_TUNNEL}" = "1" ]; then
+    echo "Deployment completed with verified public tunnel routing for ${DOMAIN}."
+else
+    echo "Private preview deployment completed; public tunnel routing remains disabled."
+fi

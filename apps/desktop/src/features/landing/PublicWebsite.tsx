@@ -2,6 +2,8 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowRight, Github, Layers, LockKeyhole, Monitor, Server, ShieldCheck } from 'lucide-react';
 import { Downloads } from './Downloads';
+import { SponsorBanner } from '../../components/monetization/SponsorBanner';
+import { AdSenseBanner } from '../../components/monetization/AdSenseBanner';
 import { AppearancePanel } from '../settings/AppearancePanel';
 import { KyvonLanding, KyvonPets, KyvonSecurity } from '../kyvon/KyvonPages';
 
@@ -10,7 +12,7 @@ const linkStyle = 'inline-flex min-h-11 items-center justify-center gap-2 rounde
 
 const walkthrough = [
   { name: 'Server inventory', title: 'Start with the servers you own.', description: 'Create a local connection profile with your hostname, SSH username, and authentication method. The installed app stores the profile on your workstation.', steps: ['Add a server profile', 'Review the SSH host fingerprint', 'Connect and collect available host data'], note: 'Saving a profile does not prove connectivity. Host access must be verified separately.' },
-  { name: 'Diagnostics', title: 'Follow the evidence to the affected service.', description: 'The V3.0 design connects host telemetry, applications, and dependencies so you can investigate an incident with context.', steps: ['Select the affected host or application', 'Review available measurements and recent changes', 'Evaluate possible causes and confidence'], note: 'Diagnostics are under development. Missing measurements must be shown as unavailable.' },
+  { name: 'Diagnostics', title: 'Follow the evidence to the affected service.', description: 'The V4.1 design connects host telemetry, applications, and dependencies so you can investigate an incident with context.', steps: ['Select the affected host or application', 'Review available measurements and recent changes', 'Evaluate possible causes and confidence'], note: 'Diagnostics are under development. Missing measurements must be shown as unavailable.' },
   { name: 'AI approvals', title: 'Review an operation before it changes a host.', description: 'Codex Astra, Claude Opus, and Agy Gemini 3.8 are intended to use the same typed MCP tools, target scopes, and policy rules.', steps: ['Inspect the requested action and exact target', 'Review risk, expected impact, and permissions', 'Approve through a trusted flow, then verify the result'], note: 'The public preview cannot approve or execute operations. The full approval-to-execution flow still requires release validation.' },
 ];
 
@@ -36,7 +38,7 @@ function AppPreview() {
           </div>
         </div>
       </div>
-      <div className="mt-6 flex flex-wrap gap-3"><Link className={`${linkStyle} border border-slate-700 hover:bg-slate-800`} to="/getting-started">How installation works <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link><a href={`${repository}/blob/main/PROMPTS.md`} target="_blank" rel="noopener noreferrer" className={`${linkStyle} text-slate-400 hover:text-white`}>Read the V3.0 specification</a></div>
+      <div className="mt-6 flex flex-wrap gap-3"><Link className={`${linkStyle} border border-slate-700 hover:bg-slate-800`} to="/getting-started">How installation works <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link><a href={`${repository}/blob/main/PROMPTS.md`} target="_blank" rel="noopener noreferrer" className={`${linkStyle} text-slate-400 hover:text-white`}>Read the product specification</a></div>
     </section>
   );
 }
@@ -65,7 +67,7 @@ function Overview() {
     <>
       <section className="grid items-center gap-12 py-20 md:grid-cols-[1.2fr_1fr] md:py-28">
         <div>
-          <span className="rounded-full border border-sky-400/25 bg-sky-400/5 px-3 py-1.5 text-xs font-medium tracking-wide text-sky-300">V3.0 · Development preview</span>
+          <span className="rounded-full border border-sky-400/25 bg-sky-400/5 px-3 py-1.5 text-xs font-medium tracking-wide text-sky-300">V4.1 · Development preview</span>
           <h1 className="mt-7 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-6xl">A clearer view of<br /><span className="text-slate-400">your infrastructure.</span></h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-400">A local-first desktop control plane for developers and infrastructure teams. Explore the project, follow its progress, and install available releases on your own machine.</p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -128,6 +130,11 @@ export function PublicWebsite() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <div className="mx-auto max-w-6xl px-6 pb-8">
+        <AdSenseBanner />
+        <div className="mt-4" />
+        <SponsorBanner placement="public" />
+      </div>
       <footer className="border-t border-slate-800"><div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-4 px-6 py-8 text-xs leading-6 text-slate-400"><p>KyvonOPS · Local-first infrastructure operations</p><p>Public website · Server administration belongs in the desktop app.</p></div></footer>
     </div>
       <AppearancePanel />

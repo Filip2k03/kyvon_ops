@@ -12,7 +12,7 @@ describe('public website boundary', () => {
   test('browser entry renders public navigation instead of the operational shell', () => {
     const html = renderToStaticMarkup(<MemoryRouter><App /></MemoryRouter>);
     expect(html).toContain('Public navigation');
-    expect(html).toContain('Development preview');
+    expect(html).toContain('V4.1 · Development preview');
     expect(html).not.toContain('CommandPalette');
     expect(html).not.toContain('href="/servers"');
     expect(html).not.toContain('href="/terminal"');
@@ -24,6 +24,8 @@ describe('public website boundary', () => {
     // The canonical releases list is reachable in every state, including
     // before the live lookup resolves and when it fails.
     expect(html).toContain('https://github.com/Filip2k03/kyvon_ops/releases');
+    expect(html).toContain('https://raw.githubusercontent.com/Filip2k03/kyvon_ops/main/scripts/install.sh');
+    expect(html).toContain('./scripts/install.sh --check');
     expect(html).toContain('Availability is not verified');
     expect(html).not.toContain('cs_test');
     expect(html).not.toContain('Downloading');

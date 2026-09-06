@@ -68,22 +68,96 @@ export interface AgentError {
   message: string;
 }
 
+/** Mirror of `FilesystemInfo`. Sizes are bytes; `df -PB1` already scaled them. */
+export interface FilesystemInfo {
+  mount_point: string;
+  device: string;
+  /** Empty when `/proc/mounts` did not name the type. */
+  fs_type: string;
+  total_bytes: number;
+  used_bytes: number;
+  available_bytes: number;
+  /** 0 when `df -i` was unavailable — inode headroom is then unknown, not full. */
+  inodes_total: number;
+  inodes_used: number;
+}
+
+/** Pseudo-filesystems (tmpfs, overlay, …) are already dropped by the backend. */
+export interface DiskSample {
+  filesystems: FilesystemInfo[];
+}
+
+export interface ProcessInfo {
+  pid: number;
+  ppid: number;
+  user: string;
+  cpu_pct: number;
+  mem_pct: number;
+  rss_bytes: number;
+  /** `ps` STAT column; the first letter is R, S, D, Z or T. */
+  state: string;
+  /** Full command line, already passed through secret redaction. */
+  command: string;
+  uptime_secs: number;
+}
+
+export interface ProcessSample {
+  /** The top consumers only — see `total` for how many the host really has. */
+  processes: ProcessInfo[];
+  total: number;
+}
+
+export interface ServiceInfo {
+  unit: string;
+  load_state: string;
+  active_state: string;
+  sub_state: string;
+  description: string;
+  /** `enabled`, `disabled`, `static`, `masked`; null when not queried. */
+  enabled: string | null;
+  active_since_ms: TimestampMs | null;
+  restarts: number | null;
+}
+
+export interface ServiceSample {
+  services: ServiceInfo[];
+}
+
+/** `#[serde(rename_all = "snake_case")]` on `Exposure`. */
+export type Exposure = 'loopback' | 'interface' | 'all_interfaces';
+
+export interface PortInfo {
+  port: number;
+  /** `tcp`, `tcp6`, `udp`, `udp6`. */
+  protocol: string;
+  address: string;
+  /** Null when the login could not see the owning process — absent, not guessed. */
+  process: string | null;
+  pid: number | null;
+  exposure: Exposure;
+}
+
+export interface PortSample {
+  ports: PortInfo[];
+}
+
 /**
  * `#[serde(tag = "type", content = "data", rename_all = "snake_case")]`.
  *
- * Only the variants the desktop collector currently produces are modelled as
- * concrete shapes; the rest are declared so an exhaustive switch stays honest
- * about receiving them.
+ * Every variant the backend emits is modelled concretely so a screen reading
+ * `frame.data` is typed end to end; `hello` stays opaque because the desktop
+ * only ever inspects it in Rust.
  */
 export type Payload =
   | { type: 'cpu'; data: CpuSample }
   | { type: 'memory'; data: MemorySample }
   | { type: 'network'; data: NetworkSample }
+  | { type: 'disk'; data: DiskSample }
+  | { type: 'processes'; data: ProcessSample }
+  | { type: 'services'; data: ServiceSample }
+  | { type: 'ports'; data: PortSample }
   | { type: 'error'; data: AgentError }
-  | { type: 'hello'; data: unknown }
-  | { type: 'disk'; data: unknown }
-  | { type: 'processes'; data: unknown }
-  | { type: 'services'; data: unknown };
+  | { type: 'hello'; data: unknown };
 
 /**
  * `version` is serialised as `v`, and the payload is `#[serde(flatten)]`ed —

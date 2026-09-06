@@ -20,7 +20,7 @@
  * look like an empty success.
  */
 
-import type { HostFacts, ServerProfile } from '../types';
+import type { HostFacts, RiskAssessment, ServerProfile, ServiceInfo } from '../types';
 
 export type Loaded<T> =
   | { state: 'ok'; data: T }
@@ -83,10 +83,26 @@ export const Backend = {
   connect: (id: string) => call<void>('connect', { id }),
   disconnect: (id: string) => call<void>('disconnect', { id }),
   resolveHostKey: (promptId: string, trust: boolean) => call<void>('resolve_host_key', { promptId, trust }),
-  writeTerminal: (id: string, data: string) => call<void>('write_terminal', { id, data }),
-  resizeTerminal: (id: string, cols: number, rows: number) =>
-    call<void>('resize_terminal', { id, cols, rows }),
+  openTerminal: (id: string, cols: number, rows: number) =>
+    call<string>('open_terminal', { id, cols, rows }),
+  writeTerminal: (sessionId: string, data: string) =>
+    call<void>('write_terminal', { sessionId, data }),
+  resizeTerminal: (sessionId: string, cols: number, rows: number) =>
+    call<void>('resize_terminal', { sessionId, cols, rows }),
+  closeTerminal: (sessionId: string) => call<void>('close_terminal', { sessionId }),
   startCollector: (id: string) => call<void>('start_collector', { id }),
   stopCollector: (id: string) => call<void>('stop_collector', { id }),
   probeCapabilities: (id: string) => call<HostFacts>('probe_capabilities', { id }),
+  listServices: (id: string) => call<ServiceInfo[]>('list_services', { id }),
+  /** What start/stop *would* run and how it is classified — nothing executes. */
+  assessServiceAction: (action: ServiceAction, service: string) =>
+    call<RiskAssessment>('assess_service_action', { action, service }),
+  /** Execute → re-read the unit → audit. Resolves to the verified post-state. */
+  startService: (id: string, service: string) =>
+    call<ServiceInfo>('start_service', { id, service }),
+  stopService: (id: string, service: string) =>
+    call<ServiceInfo>('stop_service', { id, service }),
 };
+
+/** The verbs `commands/services.rs` accepts; anything else is rejected there. */
+export type ServiceAction = 'start' | 'stop';
