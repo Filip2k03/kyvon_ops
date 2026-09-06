@@ -12,6 +12,15 @@ pub enum Outcome {
     Failure,
     /// The operator saw the confirmation and declined.
     Cancelled,
+    /// The command reported success, but its effect could not be confirmed.
+    ///
+    /// Specification §86 requires every write to be followed by a check that
+    /// the intended state was actually reached, because a command can exit 0
+    /// and still leave a unit down. Recording that as `Success` would claim
+    /// knowledge the system does not have, so it gets its own outcome —
+    /// an older reader parsing this column falls through to `Failure`, which
+    /// is the conservative direction to be wrong in.
+    Unverified,
 }
 
 impl Outcome {
@@ -20,6 +29,7 @@ impl Outcome {
             Outcome::Success => "success",
             Outcome::Failure => "failure",
             Outcome::Cancelled => "cancelled",
+            Outcome::Unverified => "unverified",
         }
     }
 
@@ -27,6 +37,7 @@ impl Outcome {
         match s {
             "success" => Outcome::Success,
             "cancelled" => Outcome::Cancelled,
+            "unverified" => Outcome::Unverified,
             _ => Outcome::Failure,
         }
     }

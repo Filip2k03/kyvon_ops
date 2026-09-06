@@ -57,6 +57,7 @@ pub fn run() {
             commands::telemetry::start_collector,
             commands::telemetry::stop_collector,
             commands::services::list_services,
+            commands::services::assess_service_action,
             commands::services::start_service,
             commands::services::stop_service,
             commands::files::list_files,

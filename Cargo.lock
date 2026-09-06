@@ -2566,6 +2566,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tokio",
+ "tracing",
  "uuid",
 ]
 
