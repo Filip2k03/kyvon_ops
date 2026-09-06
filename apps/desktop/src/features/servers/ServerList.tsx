@@ -33,6 +33,7 @@ export const ServerList: React.FC = () => {
   const [result, setResult] = useState<Loaded<ServerProfile[]> | null>(null);
   const [busy, setBusy] = useState(false);
   const [connectionStates, setConnectionStates] = useState<Record<string, string>>({});
+  const [connectionErrors, setConnectionErrors] = useState<Record<string, string>>({});
   const [hostKeyPrompt, setHostKeyPrompt] = useState<HostKeyPromptPayload | null>(null);
 
   const load = useCallback(async () => {
@@ -66,6 +67,9 @@ export const ServerList: React.FC = () => {
       listen<{ event: string; server_id?: string; state?: string; message?: string }>('kyvon-event', event => {
         if (event.payload.event === 'connection_state' && event.payload.server_id && event.payload.state) {
           setConnectionStates(previous => ({ ...previous, [event.payload.server_id!]: event.payload.state! }));
+          if (event.payload.message) {
+            setConnectionErrors(previous => ({ ...previous, [event.payload.server_id!]: event.payload.message! }));
+          }
         }
       }),
     ])).then(unlisteners => {
@@ -113,6 +117,7 @@ export const ServerList: React.FC = () => {
 
   const handleConnect = async (id: string) => {
     setConnectionStates(previous => ({ ...previous, [id]: 'connecting' }));
+    setConnectionErrors(previous => ({ ...previous, [id]: '' }));
     const result = await Backend.connect(id);
     if (result.state === 'ok') {
       setConnectionStates(previous => ({ ...previous, [id]: 'connected' }));
@@ -122,6 +127,7 @@ export const ServerList: React.FC = () => {
       navigate(`/command-center?server=${encodeURIComponent(id)}`);
     } else {
       setConnectionStates(previous => ({ ...previous, [id]: 'error' }));
+      setConnectionErrors(previous => ({ ...previous, [id]: result.detail }));
     }
   };
 
@@ -257,6 +263,12 @@ export const ServerList: React.FC = () => {
               )}
             </div>
 
+            {connectionErrors[server.id] && (
+              <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-[11px] leading-5 text-red-200">
+                {connectionErrors[server.id]}
+              </div>
+            )}
+
             <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
               <div className="flex items-center space-x-2">
                 <button
@@ -264,7 +276,7 @@ export const ServerList: React.FC = () => {
                   className="px-3 py-1.5 rounded-lg border border-transparent bg-info hover:bg-info/90 text-white text-xs font-semibold flex items-center gap-1 transition-all"
                   disabled={connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting'}
                 >
-                  <RefreshCw className={`w-3 h-3 ${connectionStates[server.id] === 'connecting' || connectionStates[server.id] === 'disconnecting' ? 'animate-spin' : ''}`} /> {connectionStates[server.id] === 'connected' ? 'Disconnect' : connectionStates[server.id] === 'connecting' ? 'Connecting…' : connectionStates[server.id] === 'disconnecting' ? 'Disconnecting…' : 'Connect'}
+                  <RefreshCw className={`w-3 h-3 ${['connecting', 'disconnecting', 'verifying_host', 'authenticating'].includes(connectionStates[server.id]) ? 'animate-spin' : ''}`} /> {connectionStates[server.id] === 'connected' ? 'Disconnect' : connectionStates[server.id] === 'verifying_host' ? 'Verify host…' : connectionStates[server.id] === 'authenticating' ? 'Authenticating…' : connectionStates[server.id] === 'connecting' ? 'Connecting…' : connectionStates[server.id] === 'disconnecting' ? 'Disconnecting…' : 'Connect'}
                 </button>
 
                 {/*
