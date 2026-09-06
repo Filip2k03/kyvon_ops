@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use crate::approvals::ApprovalGate;
+use crate::backend::InfrastructureBackend;
 use crate::redactor::sanitize_json_value;
 use crate::tokens::TokenAuthority;
 use crate::tools::get_kyvon_mcp_tools;
@@ -9,6 +12,13 @@ pub struct McpProtocolHandler {
     pub role: McpRole,
     pub token_auth: TokenAuthority,
     pub approval_gate: ApprovalGate,
+    /// Where infrastructure facts come from, when anything is attached.
+    ///
+    /// `None` is the safe default and the one the gateway ships with: every
+    /// tool then reports that no backend is attached rather than inventing an
+    /// answer. Attaching one cannot grant execution — the trait is read-only
+    /// by construction.
+    backend: Option<Arc<dyn InfrastructureBackend>>,
 }
 
 impl McpProtocolHandler {
@@ -17,11 +27,18 @@ impl McpProtocolHandler {
             role,
             token_auth: TokenAuthority::new(60),
             approval_gate: ApprovalGate::new(),
+            backend: None,
         }
     }
 
+    /// Attach a source of infrastructure facts.
+    pub fn with_backend(mut self, backend: Arc<dyn InfrastructureBackend>) -> Self {
+        self.backend = Some(backend);
+        self
+    }
+
     /// Valid notifications have no response and must not trigger tool execution.
-    pub fn handle_message(&self, request_json: &str) -> Option<Value> {
+    pub async fn handle_message(&self, request_json: &str) -> Option<Value> {
         if let Ok(request) = serde_json::from_str::<Value>(request_json) {
             if request.is_object()
                 && request["jsonrpc"] == "2.0"
@@ -32,10 +49,10 @@ impl McpProtocolHandler {
                 return None;
             }
         }
-        Some(self.handle_rpc(request_json))
+        Some(self.handle_rpc(request_json).await)
     }
 
-    pub fn handle_rpc(&self, request_json: &str) -> Value {
+    pub async fn handle_rpc(&self, request_json: &str) -> Value {
         let req: Value = match serde_json::from_str(request_json) {
             Ok(v) => v,
             Err(_) => {
@@ -99,7 +116,7 @@ impl McpProtocolHandler {
             "tools/call" => {
                 let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
-                self.dispatch_tool_call(tool_name, &args)
+                self.dispatch_tool_call(tool_name, &args).await
             }
             "resources/list" => json!({"resources": []}),
             "prompts/list" => json!({"prompts": []}),
@@ -123,7 +140,7 @@ impl McpProtocolHandler {
         })
     }
 
-    fn dispatch_tool_call(&self, tool_name: &str, args: &Value) -> Value {
+    async fn dispatch_tool_call(&self, tool_name: &str, args: &Value) -> Value {
         let tools = get_kyvon_mcp_tools();
         let Some(tool_def) = tools.iter().find(|t| t.name == tool_name) else {
             return Self::tool_error("Unknown tool. No operation was executed.");
@@ -156,14 +173,91 @@ impl McpProtocolHandler {
             }
         }
 
-        // There is no storage/telemetry or trusted execution bridge attached yet.
-        // Never turn missing implementation into operational success.
+        let Some(backend) = self.backend.as_ref() else {
+            // Never turn missing implementation into operational success.
+            return Self::tool_error(
+                "Unavailable: this MCP gateway has no infrastructure backend attached. \
+                 No operation was executed and no infrastructure state was verified.",
+            );
+        };
+
+        let server_id = args.get("server_id").and_then(Value::as_str);
+
+        match tool_name {
+            "kyvon_server_list" => match backend.list_servers().await {
+                Ok(servers) => Self::tool_ok(json!({
+                    "servers": servers,
+                    "count": servers.len(),
+                })),
+                Err(e) => Self::tool_error(&format!("Could not read the inventory: {e}")),
+            },
+
+            "kyvon_server_get" => {
+                let Some(id) = server_id else {
+                    return Self::tool_error("`server_id` is required.");
+                };
+                match backend.get_server(id).await {
+                    // A deleted server is a fact, not a failure to retry.
+                    Ok(None) => Self::tool_ok(json!({
+                        "found": false,
+                        "server_id": id,
+                        "detail": "No server with this id exists in the local inventory.",
+                    })),
+                    Ok(Some(server)) => Self::tool_ok(json!({ "found": true, "server": server })),
+                    Err(e) => Self::tool_error(&format!("Could not read server `{id}`: {e}")),
+                }
+            }
+
+            "kyvon_server_health" => {
+                let Some(id) = server_id else {
+                    return Self::tool_error("`server_id` is required.");
+                };
+                match backend.latest_metrics(id).await {
+                    Ok(readings) if readings.is_empty() => Self::tool_ok(json!({
+                        "server_id": id,
+                        "measured": false,
+                        "detail": "No telemetry has been recorded for this server. \
+                                   Health cannot be assessed, and no value is being estimated.",
+                    })),
+                    Ok(readings) => {
+                        // Every reading is dated. These are the last recorded
+                        // values, not live ones, and an agent reasoning about
+                        // current load must be able to see how old they are.
+                        let newest = readings.iter().map(|r| r.recorded_at).max().unwrap_or(0);
+                        Self::tool_ok(json!({
+                            "server_id": id,
+                            "measured": true,
+                            "as_of_ms": newest,
+                            "age_ms": kyvon_core::now_ms().saturating_sub(newest),
+                            "readings": readings,
+                            "note": "Last recorded values from the local store, not a live probe.",
+                        }))
+                    }
+                    Err(e) => Self::tool_error(&format!("Could not read metrics for `{id}`: {e}")),
+                }
+            }
+
+            // Everything else needs a live session, a topology walk or an
+            // executor, none of which this trait can reach.
+            _ => Self::tool_error(&format!(
+                "Unavailable: `{tool_name}` needs a live connection to the host, which this \
+                 gateway does not have. No operation was executed and no state was verified."
+            )),
+        }
+    }
+
+    /// A successful tool result, redacted on the way out.
+    ///
+    /// Every response passes through `sanitize_json_value` here rather than at
+    /// each call site, so a new tool cannot forget to redact (§50).
+    fn tool_ok(payload: Value) -> Value {
+        let safe = sanitize_json_value(&payload);
         json!({
             "content": [{
                 "type": "text",
-                "text": "Unavailable: this MCP gateway has no infrastructure backend attached. No operation was executed and no infrastructure state was verified."
+                "text": serde_json::to_string_pretty(&safe).unwrap_or_else(|_| safe.to_string()),
             }],
-            "isError": true
+            "isError": false
         })
     }
 
@@ -176,36 +270,38 @@ impl McpProtocolHandler {
 mod tests {
     use super::*;
 
-    #[test]
-    fn notifications_are_silent_and_cannot_create_operations() {
+    #[tokio::test]
+    async fn notifications_are_silent_and_cannot_create_operations() {
         let handler = McpProtocolHandler::new(McpRole::Administrator);
         for method in ["notifications/initialized", "tools/call", "unknown"] {
             assert!(handler
                 .handle_message(&json!({"jsonrpc": "2.0", "method": method}).to_string())
+                .await
                 .is_none());
         }
         assert!(handler.approval_gate.get_pending().is_empty());
     }
 
-    #[test]
-    fn rejects_invalid_envelopes_without_echoing_parameters() {
+    #[tokio::test]
+    async fn rejects_invalid_envelopes_without_echoing_parameters() {
         let handler = McpProtocolHandler::new(McpRole::Observer);
         for request in [
             json!([]),
             json!({"method": "tools/list", "id": 1}),
             json!({"jsonrpc": "2.0", "method": "tools/list", "id": {"secret": "opaque"}}),
         ] {
-            let response = handler.handle_rpc(&request.to_string());
+            let response = handler.handle_rpc(&request.to_string()).await;
             assert_eq!(response["error"]["code"], -32600);
             assert!(!response.to_string().contains("opaque"));
         }
-        let response =
-            handler.handle_rpc(r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":[]}"#);
+        let response = handler
+            .handle_rpc(r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":[]}"#)
+            .await;
         assert_eq!(response["error"]["code"], -32602);
     }
 
-    #[test]
-    fn responds_to_initialize_and_tools_list() {
+    #[tokio::test]
+    async fn responds_to_initialize_and_tools_list() {
         let handler = McpProtocolHandler::new(McpRole::Developer);
         let req = json!({
             "jsonrpc": "2.0",
@@ -214,13 +310,13 @@ mod tests {
             "params": {}
         });
 
-        let res = handler.handle_rpc(&req.to_string());
+        let res = handler.handle_rpc(&req.to_string()).await;
         assert_eq!(res["jsonrpc"], "2.0");
         assert!(res["result"]["tools"].as_array().unwrap().len() >= 15);
     }
 
-    #[test]
-    fn unconnected_mutation_fails_without_fake_approval() {
+    #[tokio::test]
+    async fn unconnected_mutation_fails_without_fake_approval() {
         let handler = McpProtocolHandler::new(McpRole::Operator);
         let req = json!({
             "jsonrpc": "2.0",
@@ -237,24 +333,26 @@ mod tests {
             }
         });
 
-        let res = handler.handle_rpc(&req.to_string());
+        let res = handler.handle_rpc(&req.to_string()).await;
         assert_eq!(res["result"]["isError"], true);
         assert!(res["result"].get("request_id").is_none());
         assert!(handler.approval_gate.get_pending().is_empty());
     }
 
-    #[test]
-    fn unknown_and_unconnected_read_tools_never_report_success() {
+    #[tokio::test]
+    async fn unknown_and_unconnected_read_tools_never_report_success() {
         let handler = McpProtocolHandler::new(McpRole::Observer);
         for name in ["exec_shell", "kyvon_server_delete", "kyvon_server_health"] {
-            let result = handler.dispatch_tool_call(name, &json!({"server_id": "prod-01"}));
+            let result = handler
+                .dispatch_tool_call(name, &json!({"server_id": "prod-01"}))
+                .await;
             assert_eq!(result["isError"], true);
             assert!(!result.to_string().contains("successfully"));
         }
     }
 
-    #[test]
-    fn invalid_arguments_cannot_create_approvals() {
+    #[tokio::test]
+    async fn invalid_arguments_cannot_create_approvals() {
         let handler = McpProtocolHandler::new(McpRole::Administrator);
         for args in [
             json!({}),
@@ -263,19 +361,21 @@ mod tests {
             json!([]),
         ] {
             assert_eq!(
-                handler.dispatch_tool_call("kyvon_reload_nginx", &args)["isError"],
+                handler
+                    .dispatch_tool_call("kyvon_reload_nginx", &args)
+                    .await["isError"],
                 true
             );
         }
         assert!(handler.approval_gate.get_pending().is_empty());
     }
 
-    #[test]
-    fn developer_cannot_assert_staging_to_bypass_target_authorization() {
+    #[tokio::test]
+    async fn developer_cannot_assert_staging_to_bypass_target_authorization() {
         let handler = McpProtocolHandler::new(McpRole::Developer);
         let result = handler.dispatch_tool_call("kyvon_deploy", &json!({
             "server_id": "prod-01", "application": "api", "version": "v1", "environment": "staging"
-        }));
+        })).await;
         assert_eq!(result["isError"], true);
         assert!(result.to_string().contains("Permission denied"));
         assert!(handler.approval_gate.get_pending().is_empty());

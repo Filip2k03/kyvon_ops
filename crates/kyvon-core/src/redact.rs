@@ -165,6 +165,17 @@ fn value_span_after(s: &str, key_end: usize) -> Option<(usize, usize)> {
     while i < bytes.len() && (bytes[i] == b' ' || bytes[i] == b'\t') {
         i += 1;
     }
+    // A credential is a scalar. When the value opens a JSON or array
+    // container, this is a structured document rather than a `key=secret`
+    // assignment, and masking from the brace to end-of-line would truncate the
+    // container and leave its contents orphaned — producing invalid JSON while
+    // protecting nothing. Structured payloads are redacted key-by-key by
+    // `kyvon_policy::redactor` instead, which descends into the container and
+    // masks the leaf values that actually hold secrets.
+    if matches!(bytes.get(i), Some(b'{') | Some(b'[')) {
+        return None;
+    }
+
     // Optional opening quote around the value.
     let quote = match bytes.get(i) {
         Some(&q @ (b'"' | b'\'')) => {
@@ -228,6 +239,28 @@ fn strip_pem_bodies(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_container_value_is_left_intact_so_json_stays_parseable() {
+        // `"auth": {` used to mask from the brace to end-of-line, truncating
+        // the object and making the whole document unparseable. The nested
+        // scalars are still redacted by the structured redactor.
+        let doc = "{\n  \"auth\": {\n    \"type\": \"agent\"\n  }\n}";
+        assert_eq!(redact(doc), doc, "a container value must survive redaction");
+
+        let list = "authorized_keys: [\"ssh-ed25519 AAAA\"]";
+        assert!(
+            !redact(list).contains(MASK),
+            "an array value is not a secret"
+        );
+    }
+
+    #[test]
+    fn a_scalar_secret_is_still_masked() {
+        assert!(redact("password: hunter2").contains(MASK));
+        assert!(!redact("password: hunter2").contains("hunter2"));
+        assert!(redact("{\"api_key\": \"sk-live-abc\"}").contains(MASK));
+    }
+
     use super::*;
 
     #[test]
