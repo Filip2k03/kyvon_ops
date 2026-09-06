@@ -6,7 +6,7 @@ const COMMANDS: Array<{ id: string; label: string; hint: string; to: string }> =
   { id: 'cc', label: 'Open command center', hint: 'Overview', to: '/command-center' },
   { id: 'servers', label: 'Open servers', hint: 'Connect a VPS', to: '/servers' },
   { id: 'term', label: 'Open terminal', hint: 'PTY', to: '/terminal' },
-  { id: 'proc', label: 'Open processes', hint: 'ps sample', to: '/processes' },
+  { id: 'proc', label: 'Open processes', hint: 'process list', to: '/processes' },
   { id: 'svc', label: 'Open services', hint: 'systemd', to: '/services' },
   { id: 'net', label: 'Open network', hint: 'ss listen', to: '/network' },
   { id: 'disk', label: 'Open storage', hint: 'df', to: '/storage' },

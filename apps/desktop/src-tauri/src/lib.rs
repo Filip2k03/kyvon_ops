@@ -50,6 +50,7 @@ pub fn run() {
             commands::servers::delete_server,
             commands::connection::connect,
             commands::connection::disconnect,
+            commands::connection::connected_servers,
             commands::connection::resolve_host_key,
             commands::terminal::open_terminal,
             commands::terminal::write_terminal,

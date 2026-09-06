@@ -102,6 +102,13 @@ pub async fn disconnect(
     Ok(())
 }
 
+/// Return live session ids so a view mounted after onboarding can restore the
+/// real connection state without inventing a cookie or web-session value.
+#[tauri::command]
+pub async fn connected_servers(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    Ok(state.sessions.lock().await.connected_ids())
+}
+
 #[tauri::command]
 pub async fn resolve_host_key(
     state: State<'_, AppState>,

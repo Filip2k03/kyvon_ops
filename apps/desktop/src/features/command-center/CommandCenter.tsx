@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Server, Shield, Activity, RefreshCw, Plus, Cpu, Layers } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Backend, hasBackend, runtimeName, type Loaded } from '../../lib/backend';
 import { formatBytes, useTelemetry } from '../../lib/useTelemetry';
 import { LoadedFallback, NoDataState } from '../../components/ui/NoDataState';
@@ -51,6 +51,7 @@ const Signal: React.FC<{
 
 export const CommandCenter: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [result, setResult] = useState<Loaded<ServerProfile[]> | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -68,7 +69,8 @@ export const CommandCenter: React.FC = () => {
 
   // Telemetry is per-server; the headline row follows the first host until a
   // selector exists. `null` subscribes to nothing rather than guessing an id.
-  const focused = servers[0]?.id ?? null;
+  const requested = searchParams.get('server');
+  const focused = servers.find((server) => server.id === requested)?.id ?? servers[0]?.id ?? null;
   const live = useTelemetry(focused);
 
   // Start the collector for the focused host once it is connected. A failure

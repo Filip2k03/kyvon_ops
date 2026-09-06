@@ -54,6 +54,16 @@ impl SessionManager {
     pub fn is_connected(&self, server_id: &str) -> bool {
         self.sessions.contains_key(server_id)
     }
+
+    /// Return the ids of sessions that are still usable. Closed transports are
+    /// removed lazily so a restarted view never presents a stale Connected
+    /// badge.
+    pub fn connected_ids(&self) -> Vec<String> {
+        self.sessions
+            .iter()
+            .filter_map(|(id, session)| (!session.is_closed()).then_some(id.clone()))
+            .collect()
+    }
 }
 
 pub struct AppState {

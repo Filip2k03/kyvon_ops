@@ -83,6 +83,7 @@ export const Backend = {
   deleteServer: (id: string) => call<void>('delete_server', { id }),
   connect: (id: string, secret?: string) => call<void>('connect', { id, secret: secret ?? null }),
   disconnect: (id: string) => call<void>('disconnect', { id }),
+  connectedServers: () => call<string[]>('connected_servers'),
   resolveHostKey: (promptId: string, trust: boolean) => call<void>('resolve_host_key', { promptId, trust }),
   openTerminal: (id: string, cols: number, rows: number) =>
     call<string>('open_terminal', { id, cols, rows }),

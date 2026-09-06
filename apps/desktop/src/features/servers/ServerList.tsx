@@ -45,6 +45,18 @@ export const ServerList: React.FC = () => {
     void load();
   }, [load]);
 
+  // Restore the actual in-memory SSH session state when this route is opened
+  // after onboarding or a browser-level refresh. No cookie or token is
+  // persisted: the desktop transport itself is the source of truth.
+  useEffect(() => {
+    if (!hasBackend()) return;
+    void Backend.connectedServers().then((connected) => {
+      if (connected.state === 'ok') {
+        setConnectionStates(Object.fromEntries(connected.data.map((id) => [id, 'connected'])));
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (!hasBackend()) return;
     let disposed = false;
@@ -102,7 +114,15 @@ export const ServerList: React.FC = () => {
   const handleConnect = async (id: string) => {
     setConnectionStates(previous => ({ ...previous, [id]: 'connecting' }));
     const result = await Backend.connect(id);
-    if (result.state === 'failed') setConnectionStates(previous => ({ ...previous, [id]: 'error' }));
+    if (result.state === 'ok') {
+      setConnectionStates(previous => ({ ...previous, [id]: 'connected' }));
+      // Move directly into the operator workspace after the real SSH session
+      // is established. The server id in the URL keeps the selected host
+      // stable across Command Center and per-host views.
+      navigate(`/command-center?server=${encodeURIComponent(id)}`);
+    } else {
+      setConnectionStates(previous => ({ ...previous, [id]: 'error' }));
+    }
   };
 
   const handleDisconnect = async (id: string) => {
