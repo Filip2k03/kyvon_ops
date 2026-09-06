@@ -3,7 +3,7 @@
 What is actually implemented in `kyvon_ops`, established by reading and running
 the code rather than by reading claims about it.
 
-**Verified:** 2026-09-06, commit `ddacce0`, branch `main`.
+**Verified:** 2026-09-06, commit `20c3a6c`, branch `main`.
 
 Every row cites evidence you can re-run. Where a document and the code
 disagree, the code wins. Regenerate this file before trusting it — a stale
@@ -35,7 +35,7 @@ CI runs all four on every push and is green.
 | **Inventory CRUD** | Works | `add_server` / `list_servers` / `delete_server` against `ServerRepo`. Ids and timestamps assigned server-side. |
 | **Connect** | **Proven against real hardware** | A genuine `ssh-ed25519` host key from `187.127.110.32:22` is recorded in the installed app's `known_hosts`, so the TCP connect, SSH handshake and host-key verification path have all run against a live server. Re-checkable: `sqlite3 "$HOME/Library/Application Support/com.kyvon.ops/kyvon.db" "SELECT host,key_type FROM known_hosts;"` |
 | **Host discovery** | Works, unproven | `discovery::probe` — one script, one round trip, every check a read. Persists `HostFacts`. Same caveat: not run against a real host. |
-| **Telemetry** | Works, **unproven against real hardware** | Collector piped to remote `sh -s` over stdin; `frames_from_block` produces typed samples; Command Center shows measured CPU and memory. Parsing is tested against fixtures. `metric_samples` is **0 rows** in the installed app after real use, so no sample has ever been collected from a live host — the pipeline is verified as far as "connected" and no further. |
+| **Telemetry** | **Proven against real hardware** | Ran end to end against a live Debian 6.1 host via `cargo run -p kyvon-ssh --example live_telemetry`: host key matched the trusted record, agent auth succeeded, the collector streamed over `sh -s`, and `frames_from_block` produced **seven frame types** — cpu, memory, disk, network, ports, processes, services. Block 1 gave five frames (levels); block 2 gave CPU and network, because a rate needs two readings, exactly as designed. Measured 4.91% CPU busy, load 0.38/0.34/0.30 across 4 cores. Nothing credential-shaped appeared in any frame. |
 | **Services (systemd)** | Works, unproven | `list_services`, `start_service`, `stop_service` with classify → execute → verify → audit. |
 | **Risk classification** | Works | `kyvon-security::classify`. Unknown programs floor at `Medium`; `curl \| sh`, `eval`, command substitution escalate on sight. |
 | **Command construction** | Works | `Cmd` has no constructor taking a whole command line. Injection is prevented by construction. |
@@ -118,10 +118,11 @@ build on but no recorded run against real hardware.
    notarisation, every macOS visitor meets Gatekeeper; without a Windows
    certificate, every Windows visitor meets SmartScreen. The workflow already
    references the secret names, so it is a settings change, not a code change.
-2. **Collect one real telemetry sample.** `start_collector` against the
-   already-connected host would turn `metric_samples` from 0 into evidence and
-   light up the Command Center with measured values. It is the shortest path
-   from "connected" to "useful".
+2. **Persist what the collector already produces.** The pipeline is proven —
+   real frames come off a live host — but `start_collector` in the desktop app
+   emits them to the UI without writing to `metric_samples`, so history and the
+   capacity/forecast work that depends on it stay empty. Wiring the stream to
+   `MetricRepo::insert_samples` is the remaining step.
 3. **Run one audited write** — a service restart through the approval gate —
    so `audit_events` stops being empty and §86's verify-after-write is
    demonstrated rather than only tested.
